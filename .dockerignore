@@ -1,0 +1,4 @@
+.env
+account.yml*
+redis_data
+redis.conf

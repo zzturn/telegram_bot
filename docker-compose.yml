@@ -1,0 +1,57 @@
+# write a docker compose file to run the app and redis database
+
+version: '3'
+services:
+  bot:
+    image: telegram_bot
+#    build: .
+    container_name: telegram_bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=
+      - TELEGRAM_BOT_API_BASE=
+      - DEVELOPER_CHAT_ID=
+      - ICLOUD_USERNAME=
+      - ICLOUD_PASSWORD=
+      - GOOGLE_CLIENT_ID=
+      - GOOGLE_CLIENT_SECRET=
+      - REDIS_HOST=
+      - REDIS_PORT=
+      - SELENIUM_SERVER=
+      - PROMPT=
+      - RETRY_TIMES=
+      - OPENAI_API_KEY=
+      - OPENAI_API_BASE=
+      - ZHIPUAI_KEY=
+      - GITHUB_TOKEN=
+      - GITHUB_USERNAME=
+      - GITHUB_REPO=
+      - GITHUB_FILE_PATH=
+      - GITHUB_API_BASE=
+      - TZ=
+    depends_on:
+      - redis
+      - selenium
+
+  redis:
+    image: "redis"
+    container_name: telegram_redis
+    ports:
+      - "6379:6379"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./redis.conf:/etc/redis/redis.conf
+      - ./redis_data:/data
+    command: redis-server /etc/redis/redis.conf --appendonly yes
+    restart: always
+
+  selenium:
+    image: selenium/standalone-chrome:4.14.1-20231025
+    restart: always
+    container_name: telegram_selenium
+    shm_size: 2g
+    environment:
+      - SE_NODE_MAX_SESSIONS=4
+      - TZ=Asia/Shanghai
+    ports:
+      - "4444:4444"
