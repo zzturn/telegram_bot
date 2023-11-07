@@ -13,11 +13,12 @@ def snapshot_with_wayback_api(url: str):
     """
     wayback_api_url = 'https://web.archive.org/save/'
     response = requests.get(wayback_api_url + url)
-    logger.info(f"wayback response: {response.status_code}")
+    logger.info(f"wayback response: {response.status_code}, {response.text}")
     if response.status_code == 200:
-        return response.url
+        return {'url': response.url, 'text': response.text}
     else:
-        return None
+        raise Exception(response.text)
+
 
 if __name__ == '__main__':
-    snapshot_with_wayback_api('https://mp.weixin.qq.com/s/HtQLt33NKRaNO3c9rIq80g')
+    snapshot_with_wayback_api('https://www.woshipm.com/ai/5935954.html')

@@ -44,14 +44,12 @@ async def log_update(update: Update, context: CallbackContext) -> None:
 
 
 async def error_handler(update: object, context: CallbackContext):
-    # 获取异常对象
-    exception = context.error
 
-    # 在控制台中打印错误信息
-    logger.error(f"An error occurred: {exception}")
-    traceback_str = traceback.format_exc()
-    logger.error(traceback_str)
+    # 获取错误堆栈信息
+    error_traceback = ''.join(traceback.format_tb(context.error.__traceback__))
+    error_message = f"{error_title}An error occurred: {context.error}\n\n{error_traceback}"
 
     # 可以通知用户有错误发生
-    msg = f"{error_title}{exception}\n{traceback_str}"
-    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN)
+    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=error_message, parse_mode=ParseMode.MARKDOWN)
+    logger.error(msg="Exception while handling an update:", exc_info=context.error)
+

@@ -66,7 +66,7 @@ class Config:
         self.github_username = os.getenv("GITHUB_USERNAME", "")
         self.github_repo = os.getenv("GITHUB_REPO", "")
         # 文件存放路径
-        self.github_file_path = os.getenv("GITHUB_FILE_PATH", "docs/{title}.html").lstrip('/')
+        self.github_file_prefix = os.getenv("GITHUB_FILE_PREFIX", "docs").strip('/')
         # GitHub API 地址，用于反向代理，eg: https://ghproxy.com/https://api.github.com
         self.github_api_base = os.getenv("GITHUB_API_BASE", "https://api.github.com").rstrip('/')
 
