@@ -3,8 +3,8 @@
 version: '3'
 services:
   bot:
-    image: telegram_bot
-#    build: .
+    image: ghcr.io/zzturn/telegram_bot
+    build: .
     container_name: telegram_bot
     environment:
       - TELEGRAM_BOT_TOKEN=
@@ -59,6 +59,7 @@ services:
   http:
     image: ghcr.io/zzturn/telegram_http
     build: ./telegram_http
+    container_name: telegram_http
     volumes:
       - ./self_backup.session:/app/self_backup.session
     environment:
