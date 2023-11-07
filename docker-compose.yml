@@ -55,3 +55,13 @@ services:
       - TZ=Asia/Shanghai
     ports:
       - "4444:4444"
+
+  http:
+    image: ghcr.io/zzturn/telegram_http
+    build: ./telegram_http
+    volumes:
+      - ./self_backup.session:/app/self_backup.session
+    environment:
+      - TELEGRAM_API_ID=
+      - TELEGRAM_API_HASH=
+      - TELEGRAM_PHONE=

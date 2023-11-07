@@ -2,3 +2,4 @@
 account.yml*
 redis_data
 redis.conf
+telegram_http

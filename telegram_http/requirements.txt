@@ -1,0 +1,4 @@
+fastapi==0.104.1
+pydantic==2.4.2
+Telethon==1.32.0
+uvicorn==0.23.2
