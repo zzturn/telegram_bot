@@ -1,6 +1,7 @@
 from telegram import Update, InlineKeyboardButton, ForceReply, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
+from telegram.helpers import escape_markdown
 
 from db.redis_config import redis_conn
 from handlers.constants import ADD_TOKEN, WAIT_SINGLE_INPUT, REMOVE_TOKEN, SET_CACHE, \
@@ -15,8 +16,8 @@ async def remove_a_openai_token(update: Update, context: CallbackContext) -> Non
     if user_id != DEVELOPER_CHAT_ID:
         return
     key = context.args[0]
-    data = f"{operation_title}Remove token {key}\nres: {redis_conn.srem(REDIS_ALL_OPENAI_KEY, key)}"
-    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN)
+    data = f"{operation_title}Remove token {key}\nres: {escape_markdown(redis_conn.srem(REDIS_ALL_OPENAI_KEY, key), 2)}"
+    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
@@ -24,8 +25,8 @@ async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
     if user_id != DEVELOPER_CHAT_ID:
         return
     key = context.args[0]
-    data = f"{operation_title}Add token {key}\nres: {redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key)}"
-    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN)
+    data = f"{operation_title}Add token {key}\nres: {escape_markdown(redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key), 2)}"
+    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def remove_a_cache(update: Update, context: CallbackContext) -> None:
@@ -33,8 +34,8 @@ async def remove_a_cache(update: Update, context: CallbackContext) -> None:
     if user_id != DEVELOPER_CHAT_ID:
         return
     key = context.args[0]
-    data = f"{operation_title}Remove cache {key}\nres: {redis_conn.delete(key)}"
-    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN)
+    data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(redis_conn.delete(key), 2)}"
+    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def set_a_cache(update: Update, context: CallbackContext) -> None:
@@ -45,8 +46,8 @@ async def set_a_cache(update: Update, context: CallbackContext) -> None:
     expire = context.args[1]
     value = context.args[2]
     data = redis_conn.setex(key, value, expire)
-    data = f"{operation_title}Set cache {key} with expire {expire} and value {value}\nres: {data}"
-    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN)
+    data = f"{operation_title}Set cache {escape_markdown(key, 2)} with expire {escape_markdown(expire, 2)} and value {escape_markdown(value, 2)}\nres: {escape_markdown(data, 2)}"
+    await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def openKey_addToken(update: Update, context: CallbackContext):
@@ -106,8 +107,9 @@ async def openKey_random(update: Update, context: CallbackContext) -> None:
     if data is None:
         data += 'No token found!'
     else:
-        data += res
-    await update.callback_query.edit_message_text(data, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
+        data += escape_markdown(res, 2)
+    await update.callback_query.edit_message_text(data, reply_markup=InlineKeyboardMarkup(keyboard),
+                                                  parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def openKey_listAll(update: Update, context: CallbackContext):

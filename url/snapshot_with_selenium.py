@@ -12,22 +12,29 @@ from logger.logger_config import setup_logger
 logger = setup_logger('snapshot')
 
 
-def get_url_info_by_selenium(url: str):
+def get_url_info_by_selenium(url: str, mobile: bool = False):
     """发起GET请求，获取文本
 
     Args:
-        url (str): 目标网页
+        :param url: 目标网页
+        :param mobile: 是否使用手机模式
     """
     # resp = send_get_request(url=url, params=params, timeout=timeout, **kwargs)
     html_content = None
     title = None
     driver = None
+    mobile_emulation = {
+        "deviceMetrics": {"width": 414, "height": 896, "pixelRatio": 1.0},
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1"
+    }
     try:
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-dev-shm-usage')
+        if mobile:
+            options.add_experimental_option('mobileEmulation', mobile_emulation)
         driver = webdriver.Remote(
             command_executor=configInstance.selenium_server,
             options=options)
@@ -94,14 +101,14 @@ def get_url_info_by_selenium(url: str):
     return html_content, title
 
 
-def get_text_by_selenium(url) -> str:
-    html, _ = get_url_info_by_selenium(url)
+def get_text_by_selenium(url, mobile: bool = False) -> str:
+    html, _ = get_url_info_by_selenium(url, mobile=mobile)
     soup = BeautifulSoup(html, 'html.parser')
     return soup.get_text()
 
 
-def get_markdown_by_selenium(url) -> str:
-    html, _ = get_url_info_by_selenium(url)
+def get_markdown_by_selenium(url, mobile: bool = False) -> str:
+    html, _ = get_url_info_by_selenium(url, mobile=mobile)
     converter = html2text.HTML2Text()
     converter.hard_wrap = True
     return converter.handle(html)
@@ -129,24 +136,6 @@ def get_title_with_request(url):
     return None
 
 
-def get_title_with_selenium(url):
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Remote(
-        command_executor=configInstance.selenium_server,
-        options=options)
-    # 访问网页
-    driver.get(url)
-    driver.implicitly_wait(2)  # 等待10秒，你可以根据实际情况调整这个时间
-
-    return driver.title
-
-
-
-
 if __name__ == '__main__':
-    url = 'https://mp.weixin.qq.com/s/HtQLt33NKRaNO3c9rIq80g'
+    url = 'https://blog.csdn.net/qq_30934923/article/details/119803947'
     print(get_url_info_by_selenium(url))

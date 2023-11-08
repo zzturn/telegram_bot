@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler, ContextTypes
+from telegram.helpers import escape_markdown
 
 from db.redis_config import redis_conn
 from handlers.constants import REDIS_MODE, ADD_TOKEN, WAIT_SINGLE_INPUT, REMOVE_TOKEN, SET_CACHE, REMOVE_CACHE
@@ -11,11 +12,11 @@ logger = setup_logger('redis')
 
 
 async def start_redis(update: Update, context: CallbackContext):
-    msg = status_title + 'You are now in Redis mode. Use /closeredis to exit.'
+    msg = status_title + escape_markdown('You are now in Redis mode. Use /closeredis to exit.', 2)
     if update.callback_query:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode=ParseMode.MARKDOWN)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
     else:
-        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
     reset_timer(update, context)
     logger.info('Redis mode timer started.')
     return REDIS_MODE
@@ -31,9 +32,9 @@ def reset_timer(update: Update, context: CallbackContext) -> None:
 
 
 async def timeout(context: CallbackContext) -> None:
-    msg = status_title + 'Redis mode timed out.'
+    msg = status_title + escape_markdown('Redis mode timed out.', 2)
     job = context.job
-    await context.bot.send_message(job.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+    await context.bot.send_message(job.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
     await end_redis_mode(None, context)
 
 
@@ -44,8 +45,8 @@ async def end_redis_mode(update: Update, context: CallbackContext) -> int:
         chat_id = context.job.chat_id
     job_removed = remove_job_if_exists(str(chat_id), context)
     logger.info(f'Redis mode timer removed: {job_removed}')
-    msg = status_title + 'You have exited Redis mode.'
-    await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+    msg = status_title + escape_markdown('You have exited Redis mode.', 2)
+    await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
     return ConversationHandler.END
 
 
@@ -67,14 +68,15 @@ async def handleRedis(update: Update, context: CallbackContext) -> int:
         args = command_line[1:]
         result = getattr(redis_conn.client, command)(*args)
         if result is None:
-            msg = operation_title + f"[{' '.join(command_line)}]\nCommand executed with no result."
+            msg = operation_title + escape_markdown(f"[{' '.join(command_line)}]\nCommand executed with no result.", 2)
         else:
-            msg = operation_title + f"[{' '.join(command_line)}]\nCommand executed with result: {result}"
-        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+            msg = operation_title + escape_markdown(
+                f"[{' '.join(command_line)}]\nCommand executed with result: {result}", 2)
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
         reset_timer(update, context)
     except Exception as e:
-        msg = operation_title + f"Command execute with error: {e}"
-        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+        msg = operation_title + f"Command execute with error: {escape_markdown(e, 2)}"
+        await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
     return REDIS_MODE
 
 

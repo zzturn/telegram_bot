@@ -3,6 +3,7 @@ import traceback
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
+from telegram.helpers import escape_markdown
 
 from config.config import configInstance
 from handlers.constants import DEVELOPER_CHAT_ID, error_title, CALLBACK_OPENKEY, CALLBACK_START_REDIS
@@ -44,12 +45,10 @@ async def log_update(update: Update, context: CallbackContext) -> None:
 
 
 async def error_handler(update: object, context: CallbackContext):
-
     # 获取错误堆栈信息
     error_traceback = ''.join(traceback.format_tb(context.error.__traceback__))
-    error_message = f"{error_title}An error occurred: {context.error}\n\n{error_traceback}"
+    error_message = f"{error_title}An error occurred: {escape_markdown(context.error, 2)}\n\n{escape_markdown(error_traceback, 2)}"
 
     # 可以通知用户有错误发生
-    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=error_message, parse_mode=ParseMode.MARKDOWN)
+    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=error_message, parse_mode=ParseMode.MARKDOWN_V2)
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
-

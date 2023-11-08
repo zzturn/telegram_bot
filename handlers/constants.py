@@ -2,10 +2,10 @@ from config.config import configInstance
 
 DEVELOPER_CHAT_ID = configInstance.developer_chat_id
 
-status_title = '🌐🌐*[Status Notify]*🌐🌐\n\n'
-operation_title = '🟡🟡*[Operation Notify]*🟡🟡\n\n'
-error_title = '‼️‼️*[Error Notify]*‼️‼️\n\n'
-cron_title = '⏱️⏱️*[Cron Notify]*⏱️⏱️\n\n'
+status_title = '🌐🌐*\[Status Notify\]*🌐🌐\n\n'
+operation_title = '🟡🟡*\[Operation Notify\]*🟡🟡\n\n'
+error_title = '‼️‼️*\[Error Notify\]*‼️‼️\n\n'
+cron_title = '⏱️⏱️*\[Cron Notify\]*⏱️⏱️\n\n'
 
 REDIS_ALL_OPENAI_KEY = 'all_openai_key'
 
