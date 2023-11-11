@@ -54,7 +54,11 @@ class Gmail(Email):
         )
 
     def read_email_code(self, wait_time=30):
-        self.creds = self.get_creds()
+        try:
+            self.creds = self.get_creds()
+        except Exception as e:
+            logger.error(f"获取 {self.email} 的凭证失败: {e}")
+            raise Exception(f"获取 {self.email} 的凭证失败: {e}")
         service = build('gmail', 'v1', credentials=self.creds)
         code = ""
         # 最多等待 wait_time 秒

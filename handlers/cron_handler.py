@@ -37,7 +37,7 @@ async def cron_request_openkey(context: CallbackContext):
         msg = f'\nNew tokens: {tokens}'
     except Exception as e:
         logger.error(e)
-        msg = f'Cron job error! \nError: {e}'
+        msg = f'Cron job [request_openkey] error! \nError: {e}'
     msg = f'{cron_title}{escape_markdown(msg, 2)}'
     await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
     logger.info('Cron job request open key end. ')

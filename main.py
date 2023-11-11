@@ -56,6 +56,7 @@ def main() -> None:
         map_to_parent={
             ConversationHandler.END: ConversationHandler.END,
         },
+        conversation_timeout=120,
     )
 
     # start

@@ -22,7 +22,8 @@ logger = setup_logger('url')
 async def summarize_url_text(update: Update, context: CallbackContext) -> None:
     if len(context.args) == 0:
         await update.message.reply_text(
-            f"{error_title}{escape_markdown('Please input a url.eg: /{COMMAND_SUMMARIZE} https://www.google.com', 2)}")
+            f"{error_title}{escape_markdown(f'Please input a url.eg: /{COMMAND_SUMMARIZE} https://www.google.com', 2)}",
+            parse_mode=ParseMode.MARKDOWN_V2)
         return
     url = context.args[0]
     if not is_url(url):
@@ -38,7 +39,9 @@ async def summarize_url_text(update: Update, context: CallbackContext) -> None:
         url_content_text = get_text_by_selenium(url)
     except Exception as e:
         logger.error(f"😿 文章->{url} selenium 抓取失败! Error: {str(e)}")
-        await update.message.reply_text(f'{operation_title}{url} 摘要生成失败!\n\nSave snapshot failed, error: {e}')
+        await update.message.reply_text(
+            f'{operation_title}{escape_markdown(url, 2)} 摘要生成失败!\n\nSave snapshot failed, error: {escape_markdown(str(e), 2)}',
+            parse_mode=ParseMode.MARKDOWN_V2)
     if url_content_text is None or url_content_text == '':
         msg = f'{operation_title}{escape_markdown("Selenium failed to get the content of the url.", 2)}'
         logger.error(f"😿 文章->{url} selenium 抓取失败! 返回结果为 None 或 空字符串")
@@ -66,7 +69,8 @@ async def summarize_url_text(update: Update, context: CallbackContext) -> None:
 async def save_url(update: Update, context: CallbackContext) -> None:
     if len(context.args) == 0:
         await update.message.reply_text(
-            f'{error_title}{escape_markdown("Please input a url.eg: /{COMMAND_BACKUP} https://www.google.com", 2)}')
+            f'{error_title}{escape_markdown("Please input a url.eg: /{COMMAND_BACKUP} https://www.google.com", 2)}',
+            parse_mode=ParseMode.MARKDOWN_V2)
         return
     url = context.args[0]
 

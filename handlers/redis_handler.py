@@ -75,7 +75,7 @@ async def handleRedis(update: Update, context: CallbackContext) -> int:
         await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
         reset_timer(update, context)
     except Exception as e:
-        msg = operation_title + f"Command execute with error: {escape_markdown(e, 2)}"
+        msg = operation_title + f"Command execute with error: {escape_markdown(str(e), 2)}"
         await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
     return REDIS_MODE
 

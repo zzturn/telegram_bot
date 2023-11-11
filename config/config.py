@@ -37,9 +37,10 @@ class Config:
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
         self.email_items = []
-        if os.path.exists('account.yml'):
+        account_path = 'account.yml'
+        if os.path.exists(account_path):
             # 邮箱地址 以及 refresh token(可选)
-            with open('account.yml', 'r') as f:
+            with open(account_path, 'r') as f:
                 self.email_items = yaml.safe_load(f)['accounts']
 
         # redis_conn 配置
