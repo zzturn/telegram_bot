@@ -11,7 +11,7 @@ from handlers.constants import REDIS_MODE, WAIT_SINGLE_INPUT, CALLBACK_OPENKEY_A
     CALLBACK_OPENKEY_SETCACHE, CALLBACK_OPENKEY_REMOVECACHE, CALLBACK_START_REDIS, COMMAND_REMTOKEN, COMMAND_ADDTOKEN, \
     COMMAND_REMKEY, COMMAND_ADDKEY, CALLBACK_OPENKEY_LISTALL, CALLBACK_OPENKEY_RANDOM, COMMAND_CLOSEREDIS, \
     COMMAND_REDIS, CALLBACK_START, CALLBACK_OPENKEY, COMMAND_SUMMARIZE, COMMAND_BACKUP, COMMAND_START
-from handlers.cron_handler import cron_validate_openkey, cron_request_openkey
+from handlers.cron_handler import cron_validate_openkey, cron_request_openkey, cron_sync_kv
 from handlers.openkey_handler import remove_a_openai_token, add_a_openai_token, remove_a_cache, set_a_cache, \
     openKey_addToken, openKey_removeToken, openKey_setCache, openKey_removeCache, openKey_random, openKey_listAll, \
     openKey
@@ -87,8 +87,9 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(openKey_random, CALLBACK_OPENKEY_RANDOM))
 
     # cron
-    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=60 * 60 * 2, first=5, name='cron_request')
+    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=60 * 60 * 2, first=60 * 10, name='cron_request')
     job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=60 * 30, first=60, name='cron_validate')
+    job2 = application.job_queue.run_repeating(cron_sync_kv, interval=60 * 30, first=5, name='cron_sync')
 
     logger.info('-------------Bot started-------------')
     application.run_polling()

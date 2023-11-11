@@ -71,6 +71,11 @@ class Config:
         # GitHub API 地址，用于反向代理，eg: https://ghproxy.com/https://api.github.com
         self.github_api_base = os.getenv("GITHUB_API_BASE", "https://api.github.com").rstrip('/')
 
+        # Cloudflare 配置
+        self.cf_api_key = os.getenv("CF_API_KEY", "")
+        self.cf_account_id = os.getenv("CF_ACCOUNT_ID", "")
+        self.cf_namespace_id = os.getenv("CF_NAMESPACE_ID", "")
+
     def get_email_items(self):
         return self.email_items
 
