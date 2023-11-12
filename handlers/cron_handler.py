@@ -18,7 +18,7 @@ async def cron_validate_openkey(context: CallbackContext):
     if token is None:
         logger.info(f'No OpenKey in redis.')
         await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
-                                       text=f'{cron_title}No OpenKey in redis.',
+                                       text=f'{cron_title}No OpenKey in redis',
                                        parse_mode=ParseMode.MARKDOWN_V2)
         return
     logger.info(f'Begin to validate OpenKey: {token}')
@@ -26,7 +26,7 @@ async def cron_validate_openkey(context: CallbackContext):
     if res:
         logger.info(f'OpenKey: {token} is valid.')
     else:
-        msg = f'{cron_title}*{escape_markdown(token, 2)}* is invalid and removed.'
+        msg = f'{cron_title}*{escape_markdown(token, 2)}* is invalid and removed'
         redis_conn.srem(REDIS_ALL_OPENAI_KEY, token)
         await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
         logger.info(f'OpenKey: {token} is invalid and removed.')
