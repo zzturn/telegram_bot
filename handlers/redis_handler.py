@@ -4,8 +4,8 @@ from telegram.ext import CallbackContext, ConversationHandler, ContextTypes
 from telegram.helpers import escape_markdown
 
 from db.redis_config import redis_conn
-from handlers.constants import REDIS_MODE, ADD_TOKEN, WAIT_SINGLE_INPUT, REMOVE_TOKEN, SET_CACHE, REMOVE_CACHE
-from handlers.constants import status_title, operation_title, REDIS_ALL_OPENAI_KEY
+from handlers.constants import REDIS_MODE
+from handlers.constants import status_title, operation_title
 from logger.logger_config import setup_logger
 
 logger = setup_logger('redis')
@@ -80,37 +80,3 @@ async def handleRedis(update: Update, context: CallbackContext) -> int:
     return REDIS_MODE
 
 
-async def handle_redis_operation_input(update: Update, context: CallbackContext):
-    if update.message.reply_to_message and update.message.reply_to_message.message_id == context.user_data.get(
-            'message_id'):
-        inputs = update.message.text.split()
-        action = context.user_data.get('action')
-        if action == ADD_TOKEN:
-            if len(inputs) != 1:
-                await update.message.reply_text('Please reply with right format.')
-                return WAIT_SINGLE_INPUT
-            res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, inputs[0])
-            await update.message.reply_text(f'You add token: {inputs[0]}, res: {res}')
-        elif action == REMOVE_TOKEN:
-            if len(inputs) != 1:
-                await update.message.reply_text('Please reply with right format.')
-                return WAIT_SINGLE_INPUT
-            res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, inputs[0])
-            await update.message.reply_text(f'You remove token: {inputs[0]}, res: {res}')
-        elif action == SET_CACHE:
-            if len(inputs) != 3:
-                await update.message.reply_text('Please reply with right format.')
-                return WAIT_SINGLE_INPUT
-            res = redis_conn.setex(inputs[0], inputs[2], inputs[1])
-            await update.message.reply_text(
-                f'You set cache: {inputs[0]}, value: {inputs[2]}, expire in {inputs[1]}, res: {res}')
-        elif action == REMOVE_CACHE:
-            if len(inputs) != 1:
-                await update.message.reply_text('Please reply with right format.')
-                return WAIT_SINGLE_INPUT
-            res = redis_conn.delete(inputs[0])
-            await update.message.reply_text(f'You remove cache: {inputs[0]}, res: {res}')
-        return ConversationHandler.END
-    else:
-        await update.message.reply_text('Please reply to the correct message.')
-        return WAIT_SINGLE_INPUT

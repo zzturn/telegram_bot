@@ -4,44 +4,31 @@ from telegram.ext import CallbackContext
 from telegram.helpers import escape_markdown
 
 from db.redis_config import redis_conn
-from handlers.constants import ADD_TOKEN, WAIT_SINGLE_INPUT, REMOVE_TOKEN, SET_CACHE, \
-    REMOVE_CACHE, CALLBACK_OPENKEY_LISTALL, CALLBACK_OPENKEY_RANDOM, CALLBACK_OPENKEY_ADDTOKEN, \
-    CALLBACK_OPENKEY_REMOVETOKEN, CALLBACK_OPENKEY_SETCACHE, CALLBACK_OPENKEY_REMOVECACHE, CALLBACK_OPENKEY, \
-    CALLBACK_START
-from handlers.constants import DEVELOPER_CHAT_ID, operation_title, REDIS_ALL_OPENAI_KEY
+from handlers.constants import *
+from handlers.constants import DEVELOPER_CHAT_ID, operation_title, REDIS_ALL_OPENAI_KEY, ADD_TOKEN, REMOVE_TOKEN, \
+    SET_CACHE, REMOVE_CACHE, HACK_TOKEN
+from openkey.openai_key import OpenaiKey
 
 
 async def remove_a_openai_token(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
-    if user_id != DEVELOPER_CHAT_ID:
-        return
     key = context.args[0]
     data = f"{operation_title}Remove token {key}\nres: {escape_markdown(redis_conn.srem(REDIS_ALL_OPENAI_KEY, key), 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
-    if user_id != DEVELOPER_CHAT_ID:
-        return
     key = context.args[0]
     data = f"{operation_title}Add token {key}\nres: {escape_markdown(redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key), 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def remove_a_cache(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
-    if user_id != DEVELOPER_CHAT_ID:
-        return
     key = context.args[0]
     data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(redis_conn.delete(key), 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def set_a_cache(update: Update, context: CallbackContext) -> None:
-    user_id = update.effective_user.id
-    if user_id != DEVELOPER_CHAT_ID:
-        return
     key = context.args[0]
     expire = context.args[1]
     value = context.args[2]
@@ -59,7 +46,6 @@ async def openKey_addToken(update: Update, context: CallbackContext):
                                              reply_markup=ForceReply(selective=True))
     context.user_data['message_id'] = message.message_id
     context.user_data['action'] = ADD_TOKEN
-    return WAIT_SINGLE_INPUT
 
 
 async def openKey_removeToken(update: Update, context: CallbackContext):
@@ -71,7 +57,6 @@ async def openKey_removeToken(update: Update, context: CallbackContext):
                                              reply_markup=ForceReply(selective=True))
     context.user_data['message_id'] = message.message_id
     context.user_data['action'] = REMOVE_TOKEN
-    return WAIT_SINGLE_INPUT
 
 
 async def openKey_setCache(update: Update, context: CallbackContext):
@@ -83,7 +68,6 @@ async def openKey_setCache(update: Update, context: CallbackContext):
                                              reply_markup=ForceReply(selective=True))
     context.user_data['message_id'] = message.message_id
     context.user_data['action'] = SET_CACHE
-    return WAIT_SINGLE_INPUT
 
 
 async def openKey_removeCache(update: Update, context: CallbackContext):
@@ -95,7 +79,6 @@ async def openKey_removeCache(update: Update, context: CallbackContext):
                                              reply_markup=ForceReply(selective=True))
     context.user_data['message_id'] = message.message_id
     context.user_data['action'] = REMOVE_CACHE
-    return WAIT_SINGLE_INPUT
 
 
 async def openKey_random(update: Update, context: CallbackContext) -> None:
@@ -112,7 +95,7 @@ async def openKey_random(update: Update, context: CallbackContext) -> None:
                                                   parse_mode=ParseMode.MARKDOWN_V2)
 
 
-async def openKey_listAll(update: Update, context: CallbackContext):
+async def openKey_listAllTokens(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
     ]
@@ -122,10 +105,34 @@ async def openKey_listAll(update: Update, context: CallbackContext):
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
 
 
+async def openKey_listAllKeys(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
+    ]
+    keys_set = redis_conn.keys()
+    tokens = list(keys_set)
+    tokens_str = '\n'.join(tokens)
+    await update.callback_query.edit_message_text(f'Totally {len(tokens)}:\n {tokens_str}',
+                                                  reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def openKey_hackToken(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
+    ]
+    message = await context.bot.send_message(chat_id=update.effective_chat.id,
+                                             text='Please reply to this message with the email you want to hack:\neg: abc@gmail.com',
+                                             reply_markup=ForceReply(selective=True))
+    context.user_data['message_id'] = message.message_id
+    context.user_data['action'] = HACK_TOKEN
+
+
 async def openKey(update: Update, context: CallbackContext):
     keyboard = [
-        [InlineKeyboardButton("📜List All", callback_data=CALLBACK_OPENKEY_LISTALL),
-         InlineKeyboardButton("🔑Get One", callback_data=CALLBACK_OPENKEY_RANDOM)],
+        [InlineKeyboardButton("📜List Tokens", callback_data=CALLBACK_OPENKEY_LISTTOKENS),
+         InlineKeyboardButton("🔑Get a Token", callback_data=CALLBACK_OPENKEY_RANDOM)],
+        [InlineKeyboardButton("📋List Keys", callback_data=CALLBACK_OPENKEY_LISTKEYS),
+         InlineKeyboardButton("🔨Hack Token", callback_data=CALLBACK_OPENKEY_HACKTOKEN)],
         [InlineKeyboardButton("➕Add One", callback_data=CALLBACK_OPENKEY_ADDTOKEN),
          InlineKeyboardButton("➖Remove One", callback_data=CALLBACK_OPENKEY_REMOVETOKEN)],
         [InlineKeyboardButton("📥Set Cache", callback_data=CALLBACK_OPENKEY_SETCACHE),
@@ -135,3 +142,52 @@ async def openKey(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.edit_message_text(text='Okay, choose one:',
                                                   reply_markup=reply_markup)
+
+
+async def handle_callback_input(update: Update, context: CallbackContext):
+    if update.message.reply_to_message and update.message.reply_to_message.message_id == context.user_data.get(
+            'message_id'):
+        if context.user_data.get('handled'):
+            await update.message.reply_text('You have already reply this message.')
+            return
+        inputs = update.message.text.split()
+        action = context.user_data.get('action')
+        if action == ADD_TOKEN:
+            if len(inputs) != 1:
+                await update.message.reply_text('Please reply with right format.')
+                return
+            res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, inputs[0])
+            await update.message.reply_text(f'You add token: {inputs[0]}, res: {res}')
+            context.user_data['handled'] = True
+        elif action == REMOVE_TOKEN:
+            if len(inputs) != 1:
+                await update.message.reply_text('Please reply with right format.')
+                return
+            res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, inputs[0])
+            await update.message.reply_text(f'You remove token: {inputs[0]}, res: {res}')
+            context.user_data['handled'] = True
+        elif action == SET_CACHE:
+            if len(inputs) != 3:
+                await update.message.reply_text('Please reply with right format.')
+                return
+            res = redis_conn.setex(inputs[0], inputs[2], inputs[1])
+            await update.message.reply_text(
+                f'You set cache: {inputs[0]}, value: {inputs[2]}, expire in {inputs[1]}, res: {res}')
+            context.user_data['handled'] = True
+        elif action == REMOVE_CACHE:
+            if len(inputs) != 1:
+                await update.message.reply_text('Please reply with right format.')
+                return
+            res = redis_conn.delete(inputs[0])
+            await update.message.reply_text(f'You remove cache: {inputs[0]}, res: {res}')
+            context.user_data['handled'] = True
+        elif action == HACK_TOKEN:
+            if len(inputs) != 1 or not inputs[0].endswith('@gmail.com') or not inputs[0].endswith('@icloud.com'):
+                await update.message.reply_text('Please reply with right format.')
+                return
+            openai_key = OpenaiKey()
+            res = openai_key.read_code_and_request_key(inputs[0])
+            await update.message.reply_text(f'Get token from {inputs[0]}, res: {res}')
+            context.user_data['handled'] = True
+    elif update.message.text == 'ping':
+        await update.message.reply_text('pong')

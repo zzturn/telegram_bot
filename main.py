@@ -7,15 +7,11 @@ from dotenv import load_dotenv
 
 from config.config import configInstance
 from handlers.bot_handler import start, log_update, error_handler
-from handlers.constants import REDIS_MODE, WAIT_SINGLE_INPUT, CALLBACK_OPENKEY_ADDTOKEN, CALLBACK_OPENKEY_REMOVETOKEN, \
-    CALLBACK_OPENKEY_SETCACHE, CALLBACK_OPENKEY_REMOVECACHE, CALLBACK_START_REDIS, COMMAND_REMTOKEN, COMMAND_ADDTOKEN, \
-    COMMAND_REMKEY, COMMAND_ADDKEY, CALLBACK_OPENKEY_LISTALL, CALLBACK_OPENKEY_RANDOM, COMMAND_CLOSEREDIS, \
-    COMMAND_REDIS, CALLBACK_START, CALLBACK_OPENKEY, COMMAND_SUMMARIZE, COMMAND_BACKUP, COMMAND_START
+from handlers.constants import *
 from handlers.cron_handler import cron_validate_openkey, cron_request_openkey, cron_sync_kv
-from handlers.openkey_handler import remove_a_openai_token, add_a_openai_token, remove_a_cache, set_a_cache, \
-    openKey_addToken, openKey_removeToken, openKey_setCache, openKey_removeCache, openKey_random, openKey_listAll, \
-    openKey
-from handlers.redis_handler import start_redis, end_redis_mode, handleRedis, handle_redis_operation_input
+from handlers.openkey_handler import *
+from handlers.redis_handler import start_redis, end_redis_mode, handleRedis
+from handlers.openkey_handler import handle_callback_input
 from handlers.url_handler import summarize_url_text, save_url
 from logger.logger_config import setup_logger
 
@@ -42,15 +38,9 @@ def main() -> None:
         entry_points=[
             CommandHandler(command=COMMAND_REDIS, callback=start_redis, filters=custom_filter),
             CallbackQueryHandler(start_redis, CALLBACK_START_REDIS),
-            CallbackQueryHandler(openKey_addToken, CALLBACK_OPENKEY_ADDTOKEN),
-            CallbackQueryHandler(openKey_removeToken, CALLBACK_OPENKEY_REMOVETOKEN),
-            CallbackQueryHandler(openKey_setCache, CALLBACK_OPENKEY_SETCACHE),
-            CallbackQueryHandler(openKey_removeCache, CALLBACK_OPENKEY_REMOVECACHE)
         ],
         states={
             REDIS_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND & custom_filter, handleRedis)],
-            WAIT_SINGLE_INPUT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND & custom_filter, handle_redis_operation_input)],
         },
         fallbacks=[CommandHandler(COMMAND_CLOSEREDIS, end_redis_mode)],
         map_to_parent={
@@ -72,8 +62,21 @@ def main() -> None:
     application.add_handler(
         CommandHandler(command=COMMAND_BACKUP, callback=save_url, filters=custom_filter))
 
-    # conversation
+    application.add_handler(CallbackQueryHandler(openKey_listAllTokens, CALLBACK_OPENKEY_LISTTOKENS))
+    application.add_handler(CallbackQueryHandler(openKey_random, CALLBACK_OPENKEY_RANDOM))
+    application.add_handler(CallbackQueryHandler(openKey_addToken, CALLBACK_OPENKEY_ADDTOKEN))
+    application.add_handler(CallbackQueryHandler(openKey_removeToken, CALLBACK_OPENKEY_REMOVETOKEN))
+    application.add_handler(CallbackQueryHandler(openKey_setCache, CALLBACK_OPENKEY_SETCACHE))
+    application.add_handler(CallbackQueryHandler(openKey_removeCache, CALLBACK_OPENKEY_REMOVECACHE))
+    application.add_handler(CallbackQueryHandler(openKey_listAllKeys, CALLBACK_OPENKEY_LISTKEYS))
+    application.add_handler(CallbackQueryHandler(openKey_hackToken, CALLBACK_OPENKEY_HACKTOKEN))
+
+    # conversation, need to be added before following message handler handle_callback_input
     application.add_handler(conv_handler)
+
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND & custom_filter, handle_callback_input))
+
 
     # button operation callback
     application.add_handler(
@@ -83,13 +86,13 @@ def main() -> None:
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_REMKEY, callback=remove_a_cache))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_ADDKEY, callback=set_a_cache))
 
-    application.add_handler(CallbackQueryHandler(openKey_listAll, CALLBACK_OPENKEY_LISTALL))
-    application.add_handler(CallbackQueryHandler(openKey_random, CALLBACK_OPENKEY_RANDOM))
-
     # cron
-    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=configInstance.cron_request_openkey, first=60 * 2, name='cron_request')
-    job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=configInstance.cron_validate_openkey, first=60, name='cron_validate')
-    job3 = application.job_queue.run_repeating(cron_sync_kv, interval=configInstance.cron_sync_kv, first=5, name='cron_sync')
+    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=configInstance.cron_request_openkey,
+                                               first=60 * 2, name='cron_request')
+    job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=configInstance.cron_validate_openkey,
+                                               first=60, name='cron_validate')
+    job3 = application.job_queue.run_repeating(cron_sync_kv, interval=configInstance.cron_sync_kv, first=5,
+                                               name='cron_sync')
 
     logger.info('-------------Bot started-------------')
     application.run_polling()

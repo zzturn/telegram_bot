@@ -104,6 +104,10 @@ class ICloud(Email):
         self.email = email_item['email']
 
     def read_email_code(self):
+        """
+        读取所有邮件中的验证码
+        :return: [{code, email}]
+        """
         self.M = imaplib.IMAP4_SSL(self.icloud_client_config['imap_server'], self.icloud_client_config['imap_port'])
         self.M.login(self.icloud_client_config['username'], self.icloud_client_config['password'])
         try:
@@ -111,8 +115,8 @@ class ICloud(Email):
             email_ids = self.search_emails()
             if len(email_ids) == 0:
                 raise Exception(f"未找到 {self.email} 主题为 水龙头 的未读邮件")
-            emails = self.fetch_emails(email_ids)
-            return emails
+            code_and_email_list = self.fetch_emails(email_ids)
+            return code_and_email_list
         except Exception as e:
             print(e)
         finally:
@@ -215,12 +219,10 @@ class OpenaiKey:
 
             for ec in code_list:
                 # 调用request_for_openai_key方法
-                token = self.request_for_openai_key(ec['email'], ec['code'])
+                token = self.request_for_openai_key_and_set_cache(ec['email'], ec['code'])
                 if token is not None:
                     keys.append(token)
                     email_addresses.append(ec['email'])
-                    redis_conn.sadd('all_openai_key', token)
-                    redis_conn.setex(ec['email'], token, 60 * 60 * 24)
 
         logger.debug(f"Get {len(keys)} keys: {keys}, from {email_addresses}")
         return keys
@@ -234,6 +236,27 @@ class OpenaiKey:
         logger.info(f"Request for {email_address} code, res: {response.text.encode().decode('unicode_escape')}")
         return response
 
+    def read_code_and_request_key(self, email_address: str):
+        if email_address.endswith('@gmail.com'):
+            email_and_code_list = Gmail(email_address).read_email_code()
+        elif email_address.endswith('@icloud.com'):
+            email_and_code_list = ICloud(email_address).read_email_code()
+        else:
+            raise Exception(f"Unsupported email address: {email_address}")
+        if email_and_code_list is None or len(email_and_code_list) == 0:
+            raise Exception(f"Read code from {email_address} failed")
+
+        tokens = []
+        for emaiL_and_code in email_and_code_list:
+            try:
+                token = self.request_for_openai_key_and_set_cache(emaiL_and_code['email'], emaiL_and_code['code'])
+            except Exception as e:
+                logger.error(f"Request for openai key failed, args: {emaiL_and_code}, error: {e}")
+                continue
+            if token is not None:
+                tokens.append(token)
+        return tokens
+
     def request_for_openai_key(self, email_address: str, code: str) -> str:
         # 请求数据
         data = f'{{"email": "{email_address}", "code": "{code}"}}'
@@ -245,6 +268,12 @@ class OpenaiKey:
         print(res_text)
         return json.loads(res_text).get('token')
 
+    def request_for_openai_key_and_set_cache(self, email_address: str, code: str) -> str:
+        token = self.request_for_openai_key(email_address, code)
+        if token is not None:
+            redis_conn.sadd('all_openai_key', token)
+            redis_conn.setex(email_address, token, 60 * 60 * 24)
+        return token
 
 def request_refresh_token():
     creds = None
@@ -301,8 +330,10 @@ def main():
 
 
 if __name__ == '__main__':
-    item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
-    r = Gmail(item).read_email_code()
+    # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
+    # r = Gmail(item).read_email_code()
+    item = [x for x in configInstance.get_email_items() if x['email'].endswith('icloud.com')][0]
+    r = ICloud(item).read_email_code()
     OpenaiKey().request_for_openai_key(r[0]['email'], r[0]['code'])
     # test_read_gmail()
     # request_refresh_token()
