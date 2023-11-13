@@ -58,6 +58,8 @@ class Config:
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
         # open ai api 地址，用于反向代理，eg: https://ghproxy.com/https://api.openai.com/v1
         self.openai_api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+        # open ai 模型
+        self.openai_model = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 
         # 智谱 ai 配置
         self.zhipuai_key = os.getenv("ZHIPUAI_KEY", "")

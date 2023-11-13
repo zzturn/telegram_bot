@@ -4,6 +4,7 @@ import re
 
 import requests
 import zhipuai as zhipuai
+import openai
 
 from config.config import configInstance
 from logger.logger_config import setup_logger
@@ -136,7 +137,7 @@ def sanitize_string(input_str):
     return input_str
 
 
-def summarize_content(prompt: str, api_key: str, model_name="chatglm_turbo", **kwargs):
+def summarize_content_by_zhipuai(prompt: str, api_key: str, model_name="chatglm_turbo", **kwargs):
     zhipuai.api_key = api_key
     response = zhipuai.model_api.invoke(model=model_name,
                                         prompt=[{"role": "user", "content": prompt}],
@@ -145,6 +146,12 @@ def summarize_content(prompt: str, api_key: str, model_name="chatglm_turbo", **k
                                         return_type="text",
                                         **kwargs)
     return response
+
+
+def summarize_content(prompt: str, model_name="gpt-4-1106-preview", **kwargs):
+    client = openai.OpenAI(api_key=configInstance.openai_key, base_url=configInstance.openai_api_base)
+    res = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}])
+    return res
 
 
 def test_add_files_to_repo():
@@ -161,7 +168,13 @@ def test_add_files_to_repo():
 def test_create_or_update_file():
     github_repo.create_or_update_file('te23sdfxt', 'te234st', 't6st')
 
+def test_summarize_content_by_openai():
+    prompt = "what is ojbk in Chinese"
+    res = summarize_content_by_openai(prompt)
+    print(res)
 
 if __name__ == '__main__':
+    test_summarize_content_by_openai()
     test_create_or_update_file()
     test_add_files_to_repo()
+

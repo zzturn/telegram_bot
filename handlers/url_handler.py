@@ -12,7 +12,7 @@ from handlers.constants import error_title, operation_title, COMMAND_SUMMARIZE, 
 from logger.logger_config import setup_logger
 from url.snapshot_with_selenium import get_text_by_selenium, get_url_info_by_selenium
 from url.snapshot_with_wayback import snapshot_with_wayback_api
-from url.utils import summarize_content, github_repo
+from url.utils import summarize_content_by_zhipuai, github_repo, summarize_content
 
 retry_times = configInstance.ai_retry_times
 
@@ -50,15 +50,10 @@ async def summarize_url_text(update: Update, context: CallbackContext) -> None:
     prompt = configInstance.ai_prompt + "\n" + url_content_text
     for i in range(retry_times):
         try:
-            response = summarize_content(prompt=prompt, api_key=configInstance.zhipuai_key)
-            if response['code'] == 200:
-                logger.info(f"🐱 文章->{url} 摘要第生成成功! Cost: {response['data']['usage']}")
-                msg = f"{operation_title}{escape_markdown(url, 2)} 摘要生成成功！\n\n{escape_markdown(response['data']['choices'][0]['content'], 2)}"
-                await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
-                return
-            else:
-                logger.error(f"😿 文章->{url} 摘要第 {i + 1} 次返回错误! Error: {response['msg']}")
-                continue
+            response = summarize_content(prompt, model_name=configInstance.openai_model)
+            logger.info(f"🐱 文章->{url} 摘要第 {i + 1} 次生成成功! Cost: {str(response.usage)}")
+            msg = f"{operation_title}{escape_markdown(url, 2)} 摘要生成成功！\n\n{escape_markdown(response.choices[0].message.content, 2)}"
+            await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
         except Exception as e:
             logger.error(f"😿 文章->{url} 摘要第 {i + 1} 次生成失败! Error: {str(e)}")
             continue
