@@ -87,9 +87,9 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(openKey_random, CALLBACK_OPENKEY_RANDOM))
 
     # cron
-    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=60 * 60 * 2, first=60 * 10, name='cron_request')
-    job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=60 * 30, first=60, name='cron_validate')
-    job2 = application.job_queue.run_repeating(cron_sync_kv, interval=60 * 30, first=5, name='cron_sync')
+    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=configInstance.cron_request_openkey, first=60 * 2, name='cron_request')
+    job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=configInstance.cron_validate_openkey, first=60, name='cron_validate')
+    job3 = application.job_queue.run_repeating(cron_sync_kv, interval=configInstance.cron_sync_kv, first=5, name='cron_sync')
 
     logger.info('-------------Bot started-------------')
     application.run_polling()
