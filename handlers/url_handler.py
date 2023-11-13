@@ -54,10 +54,11 @@ async def summarize_url_text(update: Update, context: CallbackContext) -> None:
             logger.info(f"🐱 文章->{url} 摘要第 {i + 1} 次生成成功! Cost: {str(response.usage)}")
             msg = f"{operation_title}{escape_markdown(url, 2)} 摘要生成成功！\n\n{escape_markdown(response.choices[0].message.content, 2)}"
             await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+            return
         except Exception as e:
             logger.error(f"😿 文章->{url} 摘要第 {i + 1} 次生成失败! Error: {str(e)}")
             continue
-    msg = f'{operation_title}{escape_markdown(url, 2)}摘要生成失败，请稍后再试。'
+    msg = f'{operation_title}{escape_markdown(url, 2)} 摘要生成失败，请稍后再试。'
     await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
 
 
