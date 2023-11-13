@@ -5,7 +5,7 @@ from config.config import configInstance
 
 class RedisClient:
     def __init__(self, host=configInstance.redis_host, port=configInstance.redis_port, db=0):
-        self.client = redis.StrictRedis(host=host, port=port, db=db)
+        self.client = redis.StrictRedis(host=host, port=port, db=db, decode_responses=True)
 
     def setex(self, key, value, time=5 * 60):
         self.client.setex(key, time, value)
