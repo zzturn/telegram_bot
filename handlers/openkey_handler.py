@@ -12,19 +12,22 @@ from openkey.openai_key import OpenaiKey
 
 async def remove_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
-    data = f"{operation_title}Remove token {key}\nres: {escape_markdown(redis_conn.srem(REDIS_ALL_OPENAI_KEY, key), 2)}"
+    res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, key)
+    data = f"{operation_title}Remove token {key}\nres:\n{escape_markdown(res if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
-    data = f"{operation_title}Add token {key}\nres: {escape_markdown(redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key), 2)}"
+    res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key)
+    data = f"{operation_title}Add token {key}\nres:\n{escape_markdown(res if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def remove_a_cache(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
-    data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(redis_conn.delete(key), 2)}"
+    res = redis_conn.delete(key)
+    data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(res if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
@@ -33,7 +36,7 @@ async def set_a_cache(update: Update, context: CallbackContext) -> None:
     expire = context.args[1]
     value = context.args[2]
     data = redis_conn.setex(key, value, expire)
-    data = f"{operation_title}Set cache {escape_markdown(key, 2)} with expire {escape_markdown(expire, 2)} and value {escape_markdown(value, 2)}\nres: {escape_markdown(data, 2)}"
+    data = f"{operation_title}Set cache {escape_markdown(key, 2)} with expire {escape_markdown(expire, 2)} and value {escape_markdown(value, 2)}\nres: {escape_markdown(data if data else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
@@ -88,7 +91,7 @@ async def openKey_random(update: Update, context: CallbackContext) -> None:
     data = operation_title
     res = redis_conn.srandmember(REDIS_ALL_OPENAI_KEY)
     if data is None:
-        data += 'No token found!'
+        data += 'No token found\\!'
     else:
         data += escape_markdown(res, 2)
     await update.callback_query.edit_message_text(data, reply_markup=InlineKeyboardMarkup(keyboard),
@@ -101,7 +104,7 @@ async def openKey_listAllTokens(update: Update, context: CallbackContext):
     ]
     tokens_set = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)
     tokens = list(tokens_set)
-    await update.callback_query.edit_message_text(f'Totally {len(tokens)}, random 5 keys:\n {tokens[:5]}',
+    await update.callback_query.edit_message_text(f'Totally {len(tokens)}, random 5 keys:\n{tokens[:5]}',
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
 
 
@@ -112,7 +115,7 @@ async def openKey_listAllKeys(update: Update, context: CallbackContext):
     keys_set = redis_conn.keys()
     tokens = list(keys_set)
     tokens_str = '\n'.join(tokens)
-    await update.callback_query.edit_message_text(f'Totally {len(tokens)}:\n {tokens_str}',
+    await update.callback_query.edit_message_text(f'Totally {len(tokens)}:\n{tokens_str}',
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
 
 
@@ -147,9 +150,6 @@ async def openKey(update: Update, context: CallbackContext):
 async def handle_callback_input(update: Update, context: CallbackContext):
     if update.message.reply_to_message and update.message.reply_to_message.message_id == context.user_data.get(
             'message_id'):
-        if context.user_data.get('handled'):
-            await update.message.reply_text('You have already reply this message.')
-            return
         inputs = update.message.text.split()
         action = context.user_data.get('action')
         if action == ADD_TOKEN:
@@ -182,12 +182,14 @@ async def handle_callback_input(update: Update, context: CallbackContext):
             await update.message.reply_text(f'You remove cache: {inputs[0]}, res: {res}')
             context.user_data['handled'] = True
         elif action == HACK_TOKEN:
-            if len(inputs) != 1 or not inputs[0].endswith('@gmail.com') or not inputs[0].endswith('@icloud.com'):
+            if len(inputs) != 1 and not (inputs[0].endswith('@gmail.com') or inputs[0].endswith('@icloud.com')):
                 await update.message.reply_text('Please reply with right format.')
                 return
             openai_key = OpenaiKey()
             res = openai_key.read_code_and_request_key(inputs[0])
-            await update.message.reply_text(f'Get token from {inputs[0]}, res: {res}')
+            if isinstance(res, list):
+                res = '\n'.join(res)
+            await update.message.reply_text(f'Get token from {inputs[0]}, res:\n{res}')
             context.user_data['handled'] = True
     elif update.message.text == 'ping':
         await update.message.reply_text('pong')

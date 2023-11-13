@@ -40,7 +40,7 @@ def main() -> None:
             CallbackQueryHandler(start_redis, CALLBACK_START_REDIS),
         ],
         states={
-            REDIS_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND & custom_filter, handleRedis)],
+            REDIS_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND & custom_filter & ~filters.REPLY, handleRedis)],
         },
         fallbacks=[CommandHandler(COMMAND_CLOSEREDIS, end_redis_mode)],
         map_to_parent={

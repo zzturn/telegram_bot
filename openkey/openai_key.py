@@ -118,7 +118,7 @@ class ICloud(Email):
             code_and_email_list = self.fetch_emails(email_ids)
             return code_and_email_list
         except Exception as e:
-            print(e)
+            logger.error(e)
         finally:
             self.M.logout()
 
@@ -130,9 +130,9 @@ class ICloud(Email):
             raise Exception("Unable to open inbox")
 
     def search_emails(self):
-        rv, data = self.M.uid('search', None, '(UNSEEN SUBJECT "水龙头")')
+        rv, data = self.M.uid('search', None, '(UNSEEN)')
         if rv == 'OK':
-            return data[0].split()
+            return data[0].split() if data[0] else []
         else:
             raise Exception("Unable to search emails")
 
@@ -149,13 +149,17 @@ class ICloud(Email):
                         body = payload.get_payload(decode=True)
                 else:
                     body = email_message.get_payload(decode=True)
-                code = re.findall(r'\d+', body.decode())[0]
-                to_mail = email_message['To']
+                code_pattern = r"验证码(\d{4})"
+                match = re.search(code_pattern, body.decode())
+                if not match:
+                    continue
+                code = match.group(1)
+                email_pattern = r"\b[a-zA-Z0-9_]+@icloud.com\b"
+                to_mail = re.findall(email_pattern, email_message['To'])[0]
                 code_and_address.append({'code': code, 'email': to_mail})
 
                 # Mark the email as read
-                self.M.uid('STORE', num, '+FLAGS', '(\Seen)')
-
+                self.M.uid('MOVE', num, '"Deleted Messages"')
         return code_and_address
 
 
@@ -238,11 +242,15 @@ class OpenaiKey:
 
     def read_code_and_request_key(self, email_address: str):
         if email_address.endswith('@gmail.com'):
-            email_and_code_list = Gmail(email_address).read_email_code()
+            email_item = [x for x in configInstance.get_email_items() if x['email'] == email_address]
+            if len(email_item) == 0:
+                raise Exception(f"Unsupported email address: {email_address}")
+            email_and_code_list = Gmail(email_item[0]).read_email_code()
         elif email_address.endswith('@icloud.com'):
-            email_and_code_list = ICloud(email_address).read_email_code()
+            email_and_code_list = ICloud({'email': email_address}).read_email_code()
         else:
             raise Exception(f"Unsupported email address: {email_address}")
+
         if email_and_code_list is None or len(email_and_code_list) == 0:
             raise Exception(f"Read code from {email_address} failed")
 
@@ -332,8 +340,7 @@ def main():
 if __name__ == '__main__':
     # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
     # r = Gmail(item).read_email_code()
-    item = [x for x in configInstance.get_email_items() if x['email'].endswith('icloud.com')][0]
-    r = ICloud(item).read_email_code()
+    r = ICloud({'email': 'item'}).read_email_code()
     OpenaiKey().request_for_openai_key(r[0]['email'], r[0]['code'])
     # test_read_gmail()
     # request_refresh_token()
