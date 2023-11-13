@@ -11,7 +11,7 @@ class RedisClient:
         self.client.setex(key, time, value)
 
     def get(self, key):
-        return str(self.client.get(key), 'utf-8')
+        return self.client.get(key)
 
     def delete(self, key):
         return self.client.delete(key)
@@ -29,7 +29,7 @@ class RedisClient:
         return self.client.smembers(key)
 
     def srandmember(self, key):
-        return str(self.client.srandmember(key), 'utf-8')
+        return self.client.srandmember(key)
 
     def exists(self, key):
         return self.client.exists(key)
