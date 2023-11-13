@@ -10,4 +10,5 @@ redis==5.0.1
 Requests==2.31.0
 selenium==4.15.2
 zhipuai==1.0.7
+openai==1.2.3
 python-telegram-bot[job-queue]==20.6
