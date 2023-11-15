@@ -37,7 +37,7 @@ async def cron_request_openkey(context: CallbackContext):
     openai_key = OpenaiKey()
     try:
         tokens = openai_key.hack_openai_token(1)
-        msg = f'\nNew tokens: {tokens}'
+        msg = f'\nRequest new tokens: {tokens}'
     except Exception as e:
         logger.error(e)
         msg = f'Cron job [request_openkey] error! \nError: {e}'
@@ -51,7 +51,7 @@ async def cron_hack_openkey(context: CallbackContext):
     openai_key = OpenaiKey()
     try:
         tokens = openai_key.hack_openai_token_via_plus_gmail(1)
-        msg = f'\nNew tokens: {tokens}'
+        msg = f'\nHack new tokens: {tokens}'
     except Exception as e:
         logger.error(e)
         msg = f'Cron job [hack_openkey] error! \nError: {e}'

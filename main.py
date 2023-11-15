@@ -85,7 +85,7 @@ def main() -> None:
         CommandHandler(filters=custom_filter, command=COMMAND_ADDTOKEN, callback=add_a_openai_token))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_REMKEY, callback=remove_a_cache))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_ADDKEY, callback=set_a_cache))
-    application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_ADDKEY, callback=hack_openkey))
+    application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_HACK, callback=hack_openkey))
 
     # cron
     job0 = application.job_queue.run_repeating(cron_hack_openkey, interval=configInstance.cron_hack_openkey,
