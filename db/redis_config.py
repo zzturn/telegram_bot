@@ -22,8 +22,8 @@ class RedisClient:
     def sadd(self, key, value):
         return self.client.sadd(key, value)
 
-    def srem(self, key, value):
-        return self.client.srem(key, value)
+    def srem(self, key, *values):
+        return self.client.srem(key, *values)
 
     def smembers(self, key):
         return self.client.smembers(key)

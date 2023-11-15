@@ -45,6 +45,8 @@ async def cron_validate_openkey(context: CallbackContext):
         expire_str = '\n'.join(expire_tokens)
         msg = f'{cron_title}*{escape_markdown(expire_str, 2)}*\nis invalid and removed'
         redis_conn.srem(REDIS_ALL_OPENAI_KEY, *expire_tokens)
+        delete_keys_from_cf(expire_tokens, configInstance.cf_account_id,
+                            configInstance.cf_namespace_id, configInstance.cf_api_key)
         await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
         logger.info(f'OpenKey: {expire_tokens} is invalid and removed.')
 
@@ -140,6 +142,15 @@ def list_keys_from_cf(account_id, namespace_id, cf_api_key, prefix=''):
         return [x['name'] for x in res['result']]
     else:
         raise Exception(f"List expire key from Cloudflare KV failed")
+
+
+def delete_keys_from_cf(keys, account_id, namespace_id, cf_api_key):
+    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/bulk"
+    headers = {
+        'Authorization': f'Bearer {cf_api_key}',
+    }
+    response = requests.delete(url, headers=headers, json=keys)
+    logger.info(f"Delete keys from Cloudflare KV: {keys}, res: {response.text}")
 
 
 def test_list_keys_from_cf():
