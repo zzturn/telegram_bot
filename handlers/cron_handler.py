@@ -46,6 +46,20 @@ async def cron_request_openkey(context: CallbackContext):
     logger.info('Cron job request open key end. ')
 
 
+async def cron_hack_openkey(context: CallbackContext):
+    logger.info('Cron job hack open key start. ')
+    openai_key = OpenaiKey()
+    try:
+        tokens = openai_key.hack_openai_token_via_plus_gmail(1)
+        msg = f'\nNew tokens: {tokens}'
+    except Exception as e:
+        logger.error(e)
+        msg = f'Cron job [hack_openkey] error! \nError: {e}'
+    msg = f'{cron_title}{escape_markdown(msg, 2)}'
+    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
+    logger.info('Cron job hack open key end. ')
+
+
 async def cron_sync_kv(context: CallbackContext):
     logger.info('Cron job sync kv start. ')
     tokens = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)

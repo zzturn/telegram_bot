@@ -1,9 +1,11 @@
+import copy
 import email
 import imaplib
 import json
 import os
 import random
 import re
+import string
 import time
 from abc import ABC, abstractmethod
 
@@ -180,6 +182,9 @@ headers = {
 }
 request_for_code_url = 'https://faucet.openkey.cloud/api/send_verification_code'
 
+def generate_random_letters(length):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for _ in range(length))
 
 class OpenaiKey:
     email_items = configInstance.get_email_items()
@@ -230,6 +235,39 @@ class OpenaiKey:
 
         logger.debug(f"Get {len(keys)} keys: {keys}, from {email_addresses}")
         return keys
+
+    def hack_openai_token_via_plus_gmail(self, num_key: int = 1) -> list:
+        random.shuffle(self.email_items)
+        list = [x for x in self.email_items if x['email'].endswith('@gmail.com')]
+        if len(list) == 0:
+            return []
+        email_item = list[0]
+        keys = []
+        count = 0
+        while len(keys) < num_key and count < 2 * num_key:
+            count += 1
+            item = copy.copy(email_item)
+            item['email'] = item['email'].replace('@gmail.com', f'+{generate_random_letters(5)}@gmail.com')
+            code_res = self.request_for_email_code(item['email'])
+            if code_res.status_code != 200 or code_res.json().get('status') != 1:
+                logger.info(
+                    f"Request for {item['email']} code failed,\
+                    res: {code_res.text.encode().decode('unicode_escape')}")
+                continue
+            time.sleep(10)
+            mail = Gmail(item)
+            code_list = mail.read_email_code()
+            if code_list is None:
+                continue
+            for ec in code_list:
+                # 调用request_for_openai_key方法
+                token = self.request_for_openai_key_and_set_cache(ec['email'], ec['code'])
+                if token is not None:
+                    keys.append(token)
+                    logger.debug(f"Get {len(keys)} keys: {keys}, from {ec['email']}")
+        return keys
+
+
 
     def request_for_email_code(self, email_address: str):
         # 请求数据
@@ -333,15 +371,16 @@ def main():
 
     load_dotenv(dotenv_path='../.env')
     openai_key = OpenaiKey()
-    keys = openai_key.hack_openai_token(1)
+    # keys = openai_key.hack_openai_token(1)
+    keys = openai_key.hack_openai_token_via_plus_gmail()
     print(keys)
 
 
 if __name__ == '__main__':
     # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
     # r = Gmail(item).read_email_code()
-    r = ICloud({'email': 'item'}).read_email_code()
-    OpenaiKey().request_for_openai_key(r[0]['email'], r[0]['code'])
+    # r = ICloud({'email': 'item'}).read_email_code()
+    # OpenaiKey().request_for_openai_key(r[0]['email'], r[0]['code'])
     # test_read_gmail()
     # request_refresh_token()
-    # main()
+    main()

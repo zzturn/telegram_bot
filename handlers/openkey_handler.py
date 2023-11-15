@@ -7,8 +7,10 @@ from db.redis_config import redis_conn
 from handlers.constants import *
 from handlers.constants import DEVELOPER_CHAT_ID, operation_title, REDIS_ALL_OPENAI_KEY, ADD_TOKEN, REMOVE_TOKEN, \
     SET_CACHE, REMOVE_CACHE, HACK_TOKEN
+from logger.logger_config import setup_logger
 from openkey.openai_key import OpenaiKey
 
+logger = setup_logger(__name__)
 
 async def remove_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
@@ -146,6 +148,16 @@ async def openKey(update: Update, context: CallbackContext):
     await update.callback_query.edit_message_text(text='Okay, choose one:',
                                                   reply_markup=reply_markup)
 
+async def hack_openkey(update: Update, context: CallbackContext):
+    openai_key = OpenaiKey()
+    try:
+        tokens = openai_key.hack_openai_token_via_plus_gmail(1)
+        msg = f'\nNew tokens: {tokens}'
+    except Exception as e:
+        logger.error(e)
+        msg = f'hack_openkey error! \nError: {e}'
+    msg = f'{operation_title}{escape_markdown(msg, 2)}'
+    await update.message.reply_text(text=msg, parse_mode=ParseMode.MARKDOWN_V2)
 
 async def handle_callback_input(update: Update, context: CallbackContext):
     if update.message.reply_to_message and update.message.reply_to_message.message_id == context.user_data.get(

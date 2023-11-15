@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from config.config import configInstance
 from handlers.bot_handler import start, log_update, error_handler
 from handlers.constants import *
-from handlers.cron_handler import cron_validate_openkey, cron_request_openkey, cron_sync_kv
+from handlers.cron_handler import cron_validate_openkey, cron_request_openkey, cron_sync_kv, cron_hack_openkey
 from handlers.openkey_handler import *
 from handlers.redis_handler import start_redis, end_redis_mode, handleRedis
 from handlers.openkey_handler import handle_callback_input
@@ -85,12 +85,15 @@ def main() -> None:
         CommandHandler(filters=custom_filter, command=COMMAND_ADDTOKEN, callback=add_a_openai_token))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_REMKEY, callback=remove_a_cache))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_ADDKEY, callback=set_a_cache))
+    application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_ADDKEY, callback=hack_openkey))
 
     # cron
+    job0 = application.job_queue.run_repeating(cron_hack_openkey, interval=configInstance.cron_hack_openkey,
+                                               first=60 * 1, name='cron_hack')
     job1 = application.job_queue.run_repeating(cron_request_openkey, interval=configInstance.cron_request_openkey,
                                                first=60 * 2, name='cron_request')
     job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=configInstance.cron_validate_openkey,
-                                               first=60, name='cron_validate')
+                                               first=30, name='cron_validate')
     job3 = application.job_queue.run_repeating(cron_sync_kv, interval=configInstance.cron_sync_kv, first=5,
                                                name='cron_sync')
 

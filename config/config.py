@@ -80,6 +80,7 @@ class Config:
 
         # cron 配置
         self.cron_request_openkey = int(os.getenv("REQUEST_OPENKEY_INTERVAL", "3600"))
+        self.cron_hack_openkey = int(os.getenv("HACK_OPENKEY_INTERVAL", "2700"))
         self.cron_validate_openkey = int(os.getenv("VALIDATE_OPENKEY_INTERVAL", "1200"))
         self.cron_sync_kv = int(os.getenv("SYNC_KV_INTERVAL", "1800"))
 
