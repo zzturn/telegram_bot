@@ -8,7 +8,7 @@ from handlers.constants import *
 from handlers.constants import DEVELOPER_CHAT_ID, operation_title, REDIS_ALL_OPENAI_KEY, ADD_TOKEN, REMOVE_TOKEN, \
     SET_CACHE, REMOVE_CACHE, HACK_TOKEN
 from logger.logger_config import setup_logger
-from openkey.openai_key import OpenaiKey
+from openkey.openai_key import OpenaiKey, validate_openai_key, validate_openai_key_with_res
 
 logger = setup_logger(__name__)
 
@@ -158,6 +158,19 @@ async def hack_openkey(update: Update, context: CallbackContext):
         msg = f'hack_openkey error! \nError: {e}'
     msg = f'{operation_title}{escape_markdown(msg, 2)}'
     await update.message.reply_text(text=msg, parse_mode=ParseMode.MARKDOWN_V2)
+
+
+async def validate_openkey(update: Update, context: CallbackContext):
+    token = context.args[0]
+    response = validate_openai_key_with_res(token)
+    try:
+        res = response.json()
+    except Exception as e:
+        logger.error(e)
+        res = response.text
+    msg = f'{operation_title}{escape_markdown(res, 2)}'
+    await update.message.reply_text(text=msg, parse_mode=ParseMode.MARKDOWN_V2)
+
 
 async def handle_callback_input(update: Update, context: CallbackContext):
     if update.message.reply_to_message and update.message.reply_to_message.message_id == context.user_data.get(

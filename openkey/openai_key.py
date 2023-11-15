@@ -182,9 +182,11 @@ headers = {
 }
 request_for_code_url = 'https://faucet.openkey.cloud/api/send_verification_code'
 
+
 def generate_random_letters(length):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for _ in range(length))
+
 
 class OpenaiKey:
     email_items = configInstance.get_email_items()
@@ -267,8 +269,6 @@ class OpenaiKey:
                     logger.debug(f"Get {len(keys)} keys: {keys}, from {ec['email']}")
         return keys
 
-
-
     def request_for_email_code(self, email_address: str):
         # 请求数据
         data = f'{{"email": "{email_address}"}}'
@@ -321,6 +321,7 @@ class OpenaiKey:
             redis_conn.setex(email_address, token, 60 * 60 * 24)
         return token
 
+
 def request_refresh_token():
     creds = None
     SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify']
@@ -341,17 +342,28 @@ def request_refresh_token():
 
 
 def validate_openai_key(key: str) -> bool:
-    url = 'https://openkey.cloud/v1/dashboard/billing/subscription'
-    validate_headers = headers.copy()
-    validate_headers['Authorization'] = f'Bearer {key}'
-    logger.debug(f"Begin to validate openai key: {key}")
-    response = requests.get(url, headers=validate_headers)
+    response = validate_openai_key_with_res(key)
     res_data = response.json()
-    logger.debug(f"Validate openai key: {key}, code: {response.status_code}, response: {res_data}")
-    if response.status_code == 200:
+    if response.status_code == 200 and res_data['Status'] == 1 and res_data['Remaining'] > 0:
         return True
     else:
         return False
+
+
+def validate_openai_key_with_res(key: str):
+    url = 'https://billing.openkey.cloud/api/token'
+    validate_headers = headers.copy()
+    validate_headers['Authorization'] = f'Bearer {key}'
+    logger.debug(f"Begin to validate openai key: {key}")
+    response = requests.post(url, json={'api_key': key})
+    logger.debug(f"Validate openai key: {key}, code: {response.status_code}, response: {response.text}")
+    return response
+
+
+def test_validate_openai_key():
+    r1 = validate_openai_key('sk-1234567890')
+    r2 = validate_openai_key('sk-gSGKvLcwfgfWyEqsTGCMV4w1Q5VJlkroS6OD969zNew9naO9')
+    print()
 
 
 def test_read_gmail():
@@ -377,6 +389,7 @@ def main():
 
 
 if __name__ == '__main__':
+    test_validate_openai_key()
     # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
     # r = Gmail(item).read_email_code()
     # r = ICloud({'email': 'item'}).read_email_code()

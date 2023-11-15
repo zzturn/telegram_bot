@@ -34,8 +34,13 @@ async def cron_validate_openkey(context: CallbackContext):
         if token not in expire_tokens:
             break
 
-    if token is not None and not validate_openai_key(token):
-        expire_tokens.append(token)
+    if token is not None:
+        try:
+            validate_res = validate_openai_key(token)
+            if not validate_res:
+                expire_tokens.append(token)
+        except Exception as e:
+            logger.error(f'Validate token {token} failed: {e}')
     if len(expire_tokens) > 0:
         expire_str = '\n'.join(expire_tokens)
         msg = f'{cron_title}*{escape_markdown(expire_str, 2)}*\nis invalid and removed'
