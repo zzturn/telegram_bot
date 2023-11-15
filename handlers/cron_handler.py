@@ -14,22 +14,34 @@ logger = setup_logger('cron')
 
 
 async def cron_validate_openkey(context: CallbackContext):
-    token = redis_conn.srandmember(REDIS_ALL_OPENAI_KEY)
-    if token is None:
-        logger.info(f'No OpenKey in redis.')
-        await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
-                                       text=f'{cron_title}No OpenKey in redis',
-                                       parse_mode=ParseMode.MARKDOWN_V2)
-        return
-    logger.info(f'Begin to validate OpenKey: {token}')
-    res = validate_openai_key(token)
-    if res:
-        logger.info(f'OpenKey: {token} is valid.')
-    else:
-        msg = f'{cron_title}*{escape_markdown(token, 2)}* is invalid and removed'
-        redis_conn.srem(REDIS_ALL_OPENAI_KEY, token)
+    logger.info('Cron job validate open key start. ')
+    try:
+        expire_tokens = list_keys_from_cf(configInstance.cf_account_id,
+                                          configInstance.cf_namespace_id, configInstance.cf_api_key, 'sk')
+        logger.info(f'Expire tokens: {expire_tokens}')
+    except Exception as e:
+        logger.error('List expire tokens failed:',e)
+        expire_tokens = []
+    count = 0
+    # 随机获取一个 OpenKey 进行验证
+    token = None
+    while True:
+        # 防止死循环，基本不可能到 20 次
+        if count > 20:
+            break
+        count += 1
+        token = redis_conn.srandmember(REDIS_ALL_OPENAI_KEY)
+        if token not in expire_tokens:
+            break
+
+    if token is not None and not validate_openai_key(token):
+        expire_tokens.append(token)
+    if len(expire_tokens) > 0:
+        expire_str = '\n'.join(expire_tokens)
+        msg = f'{cron_title}*{escape_markdown(expire_str, 2)}*\nis invalid and removed'
+        redis_conn.srem(REDIS_ALL_OPENAI_KEY, *expire_tokens)
         await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
-        logger.info(f'OpenKey: {token} is invalid and removed.')
+        logger.info(f'OpenKey: {expire_tokens} is invalid and removed.')
 
 
 async def cron_request_openkey(context: CallbackContext):
@@ -110,7 +122,29 @@ def put_kv_to_cf(key, value, account_id, namespace_id, cf_api_key):
         raise Exception(f"Put {key} to Cloudflare KV failed: {response.text}")
 
 
+def list_keys_from_cf(account_id, namespace_id, cf_api_key, prefix=''):
+    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/keys?prefix={prefix}"
+    headers = {
+        'Authorization': f'Bearer {cf_api_key}',
+    }
+    response = requests.get(url, headers=headers)
+    logger.info(f"List keys from Cloudflare KV with parameter: '{prefix}' res: {response.text}")
+    response.raise_for_status()
+    res = response.json()
+    if res['success']:
+        return [x['name'] for x in res['result']]
+    else:
+        raise Exception(f"List expire key from Cloudflare KV failed")
+
+
+def test_list_keys_from_cf():
+    keys = list_keys_from_cf(configInstance.cf_account_id,
+                             configInstance.cf_namespace_id,
+                             configInstance.cf_api_key, 'sk')
+    logger.info(f"List keys from Cloudflare KV: {keys}")
+
 if __name__ == '__main__':
+    test_list_keys_from_cf()
     tokens = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)
     logger.info(f'{REDIS_ALL_OPENAI_KEY}: {tokens}')
     # 使用列表推导解码每个字节字符串
