@@ -36,3 +36,12 @@ COMMAND_SUMMARIZE = 'summarize'
 COMMAND_BACKUP = 'backup'
 COMMAND_HACK = 'hack'
 COMMAND_VALIDATE = 'validate'
+COMMAND_CRON_INFO = 'cron_info'
+COMMAND_CRON_UPDATE = 'cron_update'
+COMMAND_HELP = 'help'
+
+
+CRON_REQUEST_OPENKEY = 'cron_request_openkey'
+CRON_HACK_OPENKEY = 'cron_hack_openkey'
+CRON_VALIDATE_OPENKEY = 'cron_validate_openkey'
+CRON_SYNC_KV = 'cron_sync_kv'

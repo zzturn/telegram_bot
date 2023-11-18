@@ -1,4 +1,8 @@
 import requests
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 from telegram.helpers import escape_markdown
@@ -6,21 +10,23 @@ from telegram.helpers import escape_markdown
 from config import config
 from config.config import configInstance
 from db.redis_config import redis_conn
-from handlers.constants import DEVELOPER_CHAT_ID, cron_title, REDIS_ALL_OPENAI_KEY
+from handlers.constants import *
 from openkey.openai_key import validate_openai_key, OpenaiKey
 from logger.logger_config import setup_logger
 
 logger = setup_logger('cron')
 
+# cron
+custom_scheduler = AsyncIOScheduler()
 
-async def cron_validate_openkey(context: CallbackContext):
+async def cron_validate_openkey(application):
     logger.info('Cron job validate open key start. ')
     try:
         expire_tokens = list_keys_from_cf(configInstance.cf_account_id,
                                           configInstance.cf_namespace_id, configInstance.cf_api_key, 'sk')
         logger.info(f'Expire tokens: {expire_tokens}')
     except Exception as e:
-        logger.error('List expire tokens failed:',e)
+        logger.error('List expire tokens failed:', e)
         expire_tokens = []
     count = 0
     # 随机获取一个 OpenKey 进行验证
@@ -47,11 +53,11 @@ async def cron_validate_openkey(context: CallbackContext):
         redis_conn.srem(REDIS_ALL_OPENAI_KEY, *expire_tokens)
         delete_keys_from_cf(expire_tokens, configInstance.cf_account_id,
                             configInstance.cf_namespace_id, configInstance.cf_api_key)
-        await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
+        await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
         logger.info(f'OpenKey: {expire_tokens} is invalid and removed.')
 
 
-async def cron_request_openkey(context: CallbackContext):
+async def cron_request_openkey(application):
     logger.info('Cron job request open key start. ')
     openai_key = OpenaiKey()
     try:
@@ -61,11 +67,11 @@ async def cron_request_openkey(context: CallbackContext):
         logger.error(e)
         msg = f'Cron job [request_openkey] error! \nError: {e}'
     msg = f'{cron_title}{escape_markdown(msg, 2)}'
-    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
+    await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
     logger.info('Cron job request open key end. ')
 
 
-async def cron_hack_openkey(context: CallbackContext):
+async def cron_hack_openkey(application):
     logger.info('Cron job hack open key start. ')
     openai_key = OpenaiKey()
     try:
@@ -75,19 +81,19 @@ async def cron_hack_openkey(context: CallbackContext):
         logger.error(e)
         msg = f'Cron job [hack_openkey] error! \nError: {e}'
     msg = f'{cron_title}{escape_markdown(msg, 2)}'
-    await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
+    await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
     logger.info('Cron job hack open key end. ')
 
 
-async def cron_sync_kv(context: CallbackContext):
+async def cron_sync_kv(application):
     logger.info('Cron job sync kv start. ')
     tokens = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)
     logger.info(f'{REDIS_ALL_OPENAI_KEY}: {tokens}')
     if not tokens:
         msg = f'No OpenKey in {REDIS_ALL_OPENAI_KEY}, res: {tokens}'
-        await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
-                                       text=escape_markdown(msg, 2),
-                                       parse_mode=ParseMode.MARKDOWN_V2)
+        await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
+                                           text=escape_markdown(msg, 2),
+                                           parse_mode=ParseMode.MARKDOWN_V2)
         return
     # 使用列表推导解码每个字节字符串
     normal_strings = [byte_string.decode('utf-8') if isinstance(byte_string, bytes) else byte_string for byte_string in
@@ -103,11 +109,46 @@ async def cron_sync_kv(context: CallbackContext):
     except Exception as e:
         msg = f'Cron job [sync_kv] error! \nError: {e}'
         text = f'{cron_title}{escape_markdown(msg, 2)}'
-        await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
-                                       text=text,
-                                       parse_mode=ParseMode.MARKDOWN_V2)
+        await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
+                                           text=text,
+                                           parse_mode=ParseMode.MARKDOWN_V2)
     logger.info('Cron job sync kv end. ')
 
+
+async def cron_update(update: Update, context: CallbackContext):
+    options = [CRON_REQUEST_OPENKEY, CRON_HACK_OPENKEY, CRON_VALIDATE_OPENKEY, CRON_SYNC_KV]
+    if len(context.args) != 6 or context.args[0] not in options:
+        msg = f"💡Please input 6 parameters: \n\neg: {CRON_REQUEST_OPENKEY} 30 * * * *\n\nThe first parameter has following options: \n{CRON_REQUEST_OPENKEY}\n{CRON_HACK_OPENKEY}\n{CRON_VALIDATE_OPENKEY}\n{CRON_SYNC_KV}"
+        await update.message.reply_text(msg)
+        token = context.args[0]
+    cron_expression = ' '.join(context.args[1:])
+    try:
+        job = update_cron(options[0], cron_expression)
+        msg = f'Update cron job {options[0]} to {cron_expression} success!\nNext run time: {job.next_run_time}'
+    except Exception as e:
+        msg = f'Update cron job {options[0]} to {cron_expression} failed! Error: {e}'
+    msg = f'{cron_title}{escape_markdown(msg, 2)}'
+    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+
+
+async def cron_info(update: Update, context: CallbackContext):
+    options = [CRON_REQUEST_OPENKEY, CRON_HACK_OPENKEY, CRON_VALIDATE_OPENKEY, CRON_SYNC_KV]
+    if len(context.args) != 1 or context.args[0] not in options:
+        option_str = "\n".join(options)
+        msg = f'💡Please input the cron id:\n{option_str}'
+        await update.message.reply_text(msg)
+        token = context.args[0]
+    job = custom_scheduler.get_job(options[0])
+    msg = f'Get cron job {options[0]} success!\nTrigger: {job.trigger}\nNext run time: {job.next_run_time}'
+    msg = f'{cron_title}{escape_markdown(msg, 2)}'
+    await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+
+
+def update_cron(job_id, cron_expression):
+    job = custom_scheduler.get_job(job_id)
+    job.reschedule(CronTrigger.from_crontab(cron_expression))
+    logger.info(f'Update cron job {job_id} to {cron_expression}, next run time: {job.next_run_time}')
+    return job
 
 def put_kv_to_cf(key, value, account_id, namespace_id, cf_api_key):
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/values/{key}"
@@ -158,6 +199,7 @@ def test_list_keys_from_cf():
                              configInstance.cf_namespace_id,
                              configInstance.cf_api_key, 'sk')
     logger.info(f"List keys from Cloudflare KV: {keys}")
+
 
 if __name__ == '__main__':
     test_list_keys_from_cf()

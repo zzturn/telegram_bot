@@ -79,10 +79,10 @@ class Config:
         self.cf_namespace_id = os.getenv("CF_NAMESPACE_ID", "")
 
         # cron 配置
-        self.cron_request_openkey = int(os.getenv("REQUEST_OPENKEY_INTERVAL", "3600"))
-        self.cron_hack_openkey = int(os.getenv("HACK_OPENKEY_INTERVAL", "2700"))
-        self.cron_validate_openkey = int(os.getenv("VALIDATE_OPENKEY_INTERVAL", "1200"))
-        self.cron_sync_kv = int(os.getenv("SYNC_KV_INTERVAL", "1800"))
+        self.cron_request_openkey = os.getenv("REQUEST_OPENKEY_INTERVAL", "15 * * * *")
+        self.cron_hack_openkey = os.getenv("HACK_OPENKEY_INTERVAL", "*/45 * * * *")
+        self.cron_validate_openkey = os.getenv("VALIDATE_OPENKEY_INTERVAL", "15,36,52 * * * *")
+        self.cron_sync_kv = os.getenv("SYNC_KV_INTERVAL", "18,38,56 * * * *")
 
     def get_email_items(self):
         return self.email_items

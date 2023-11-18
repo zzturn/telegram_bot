@@ -1,14 +1,17 @@
 import re
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from telegram import MenuButton
 from telegram.ext import CommandHandler, CallbackQueryHandler, ApplicationBuilder, \
     ConversationHandler, MessageHandler, filters, JobQueue
 from dotenv import load_dotenv
 
 from config.config import configInstance
-from handlers.bot_handler import start, log_update, error_handler
+from handlers.bot_handler import start, log_update, error_handler, help_command
 from handlers.constants import *
-from handlers.cron_handler import cron_validate_openkey, cron_request_openkey, cron_sync_kv, cron_hack_openkey
+from handlers.cron_handler import cron_validate_openkey, cron_request_openkey, cron_sync_kv, cron_hack_openkey, \
+    custom_scheduler, cron_info, cron_update
 from handlers.openkey_handler import *
 from handlers.redis_handler import start_redis, end_redis_mode, handleRedis
 from handlers.openkey_handler import handle_callback_input
@@ -87,16 +90,19 @@ def main() -> None:
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_ADDKEY, callback=set_a_cache))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_HACK, callback=hack_openkey))
     application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_VALIDATE, callback=validate_openkey))
+    application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_CRON_INFO, callback=cron_info))
+    application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_CRON_UPDATE, callback=cron_update))
 
-    # cron
-    job0 = application.job_queue.run_repeating(cron_hack_openkey, interval=configInstance.cron_hack_openkey,
-                                               first=60 * 1, name='cron_hack')
-    job1 = application.job_queue.run_repeating(cron_request_openkey, interval=configInstance.cron_request_openkey,
-                                               first=60 * 2, name='cron_request')
-    job2 = application.job_queue.run_repeating(cron_validate_openkey, interval=configInstance.cron_validate_openkey,
-                                               first=30, name='cron_validate')
-    job3 = application.job_queue.run_repeating(cron_sync_kv, interval=configInstance.cron_sync_kv, first=5,
-                                               name='cron_sync')
+    application.add_handler(CommandHandler(filters=custom_filter, command=COMMAND_HELP, callback=help_command))
+
+
+
+    # Add the cron job
+    custom_scheduler.add_job(cron_request_openkey, CronTrigger.from_crontab(configInstance.cron_request_openkey), args=[application], id=CRON_REQUEST_OPENKEY)
+    custom_scheduler.add_job(cron_hack_openkey, CronTrigger.from_crontab(configInstance.cron_hack_openkey), args=[application], id=CRON_HACK_OPENKEY)
+    custom_scheduler.add_job(cron_validate_openkey, CronTrigger.from_crontab(configInstance.cron_validate_openkey), args=[application], id=CRON_VALIDATE_OPENKEY)
+    custom_scheduler.add_job(cron_sync_kv, CronTrigger.from_crontab(configInstance.cron_sync_kv), args=[application], id=CRON_SYNC_KV)
+    custom_scheduler.start()
 
     logger.info('-------------Bot started-------------')
     application.run_polling()

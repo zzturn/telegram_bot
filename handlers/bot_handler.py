@@ -24,20 +24,25 @@ async def start(update: Update, context: CallbackContext):
         await update.message.reply_text('💡Hello, tell me what you want:', reply_markup=reply_markup)
 
 
-def help_command(update: Update, context: CallbackContext):
+async def help_command(update: Update, context: CallbackContext):
     help_text = """
-    Here are the commands you can use:
-    /start - Start the bot
-    /summarize - Summarize a web url
-    /backup - Backup a web url
-    /redis - Connect to Redis
-    /closeredis - Close Redis connection
-    /remtoken - Remove a token
-    /addtoken - Add a token
-    /remkey - Remove a key
-    /addkey - Add a key
-    """
-    update.message.reply_text(help_text)
+Here are the commands you can use:
+/start - Start the bot
+/summarize - Summarize a web url
+/backup - Backup a web url
+/hack - Hack a token
+/validate - Validate a token
+/cron_info - Show cron info
+/cron_update - Update cron info
+/redis - Connect to Redis
+/closeredis - Close Redis connection
+/remtoken - Remove a token
+/addtoken - Add a token
+/remkey - Remove a key
+/addkey - Add a key
+/help - Show this help message
+"""
+    await update.message.reply_text(help_text)
 
 
 async def log_update(update: Update, context: CallbackContext) -> None:
