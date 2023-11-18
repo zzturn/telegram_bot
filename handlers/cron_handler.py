@@ -123,10 +123,10 @@ async def cron_update(update: Update, context: CallbackContext):
         token = context.args[0]
     cron_expression = ' '.join(context.args[1:])
     try:
-        job = update_cron(options[0], cron_expression)
-        msg = f'Update cron job {options[0]} to {cron_expression} success!\nNext run time: {job.next_run_time}'
+        job = update_cron(context.args[0], cron_expression)
+        msg = f'Update cron job {context.args[0]} to {cron_expression} success!\nNext run time: {job.next_run_time}'
     except Exception as e:
-        msg = f'Update cron job {options[0]} to {cron_expression} failed! Error: {e}'
+        msg = f'Update cron job {context.args[0]} to {cron_expression} failed! Error: {e}'
     msg = f'{cron_title}{escape_markdown(msg, 2)}'
     await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
 
@@ -138,8 +138,8 @@ async def cron_info(update: Update, context: CallbackContext):
         msg = f'💡Please input the cron id:\n{option_str}'
         await update.message.reply_text(msg)
         token = context.args[0]
-    job = custom_scheduler.get_job(options[0])
-    msg = f'Get cron job {options[0]} success!\nTrigger: {job.trigger}\nNext run time: {job.next_run_time}'
+    job = custom_scheduler.get_job(context.args[0])
+    msg = f'Get cron job {context.args[0]} success!\nTrigger: {job.trigger}\nNext run time: {job.next_run_time}'
     msg = f'{cron_title}{escape_markdown(msg, 2)}'
     await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
 
