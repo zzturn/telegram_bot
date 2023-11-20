@@ -389,11 +389,11 @@ def main():
 
 
 if __name__ == '__main__':
-    test_validate_openai_key()
+    # test_validate_openai_key()
     # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
     # r = Gmail(item).read_email_code()
     # r = ICloud({'email': 'item'}).read_email_code()
     # OpenaiKey().request_for_openai_key(r[0]['email'], r[0]['code'])
     # test_read_gmail()
-    # request_refresh_token()
+    request_refresh_token()
     main()

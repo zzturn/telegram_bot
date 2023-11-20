@@ -15,21 +15,21 @@ logger = setup_logger(__name__)
 async def remove_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
     res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, key)
-    data = f"{operation_title}Remove token {key}\nres:\n{escape_markdown(res if res else 'No Message', 2)}"
+    data = f"{operation_title}Remove token {key}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
     res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key)
-    data = f"{operation_title}Add token {key}\nres:\n{escape_markdown(res if res else 'No Message', 2)}"
+    data = f"{operation_title}Add token {key}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def remove_a_cache(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
     res = redis_conn.delete(key)
-    data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(res if res else 'No Message', 2)}"
+    data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
@@ -38,7 +38,7 @@ async def set_a_cache(update: Update, context: CallbackContext) -> None:
     expire = context.args[1]
     value = context.args[2]
     data = redis_conn.setex(key, value, expire)
-    data = f"{operation_title}Set cache {escape_markdown(key, 2)} with expire {escape_markdown(expire, 2)} and value {escape_markdown(value, 2)}\nres: {escape_markdown(data if data else 'No Message', 2)}"
+    data = f"{operation_title}Set cache {escape_markdown(key, 2)} with expire {escape_markdown(expire, 2)} and value {escape_markdown(value, 2)}\nres: {escape_markdown(str(res) if data else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
