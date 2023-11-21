@@ -389,7 +389,7 @@ def main():
 
 
 if __name__ == '__main__':
-    # test_validate_openai_key()
+    test_validate_openai_key()
     # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
     # r = Gmail(item).read_email_code()
     # r = ICloud({'email': 'item'}).read_email_code()

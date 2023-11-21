@@ -15,21 +15,21 @@ logger = setup_logger(__name__)
 async def remove_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
     res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, key)
-    data = f"{operation_title}Remove token {key}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
+    data = f"{operation_title}Remove token {escape_markdown(key, 2)}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
     res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key)
-    data = f"{operation_title}Add token {key}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
+    data = f"{operation_title}Add token {escape_markdown(key, 2)}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def remove_a_cache(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
     res = redis_conn.delete(key)
-    data = f"{operation_title}Remove cache {key}\nres: {escape_markdown(str(res) if res else 'No Message', 2)}"
+    data = f"{operation_title}Remove cache {escape_markdown(key, 2)}\nres: {escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
@@ -163,12 +163,8 @@ async def hack_openkey(update: Update, context: CallbackContext):
 async def validate_openkey(update: Update, context: CallbackContext):
     token = context.args[0]
     response = validate_openai_key_with_res(token)
-    try:
-        res = response.json()
-    except Exception as e:
-        logger.error(e)
-        res = response.text
-    msg = f'{operation_title}{escape_markdown(res, 2)}'
+    res = response.text
+    msg = f'{operation_title}{escape_markdown(res if res else "No response", 2)}'
     await update.message.reply_text(text=msg, parse_mode=ParseMode.MARKDOWN_V2)
 
 

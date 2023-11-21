@@ -58,7 +58,7 @@ async def error_handler(update: object, context: CallbackContext):
         context_error = 'No error'
     if not error_traceback:
         error_traceback = 'No error traceback'
-    error_message = f"{error_title}An error occurred: {escape_markdown(str(context.error), 2)}\n\n{escape_markdown(str(error_traceback), 2)}"
+    error_message = f"{error_title}An error occurred: {escape_markdown(str(context.error), 2)}"
 
     # 可以通知用户有错误发生
     await context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=error_message, parse_mode=ParseMode.MARKDOWN_V2)
