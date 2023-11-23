@@ -84,6 +84,9 @@ class Config:
         self.cron_validate_openkey = os.getenv("VALIDATE_OPENKEY_INTERVAL", "15,36,52 * * * *")
         self.cron_sync_kv = os.getenv("SYNC_KV_INTERVAL", "18,38,56 * * * *")
 
+        self.token_expire = int(os.getenv("TOKEN_EXPIRE", 60 * 60 * 24 * 3))
+        self.token_req_interval = int(os.getenv("TOKEN_REQ_INTERVAL", 60 * 60 * 24))
+
     def get_email_items(self):
         return self.email_items
 

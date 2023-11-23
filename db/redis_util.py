@@ -5,7 +5,7 @@ import time
 import redis
 
 from config.config import configInstance
-from handlers.constants import REDIS_ALL_OPENAI_KEY, REDIS_ALL_OPENAI_KEY
+from handlers.constants import REDIS_ALL_OPENAI_KEY, TOKEN_EXPIRE
 
 
 class RedisUtil:
@@ -18,8 +18,8 @@ class RedisUtil:
     def get(self, key):
         return self.client.get(key)
 
-    def delete(self, key):
-        return self.client.delete(key)
+    def delete(self, *key):
+        return self.client.delete(*key)
 
     def keys(self, pattern='*'):
         return self.client.keys(pattern)
@@ -42,11 +42,17 @@ class RedisUtil:
 
     # openkey
     def add_token(self, token, value=None):
-        if value is None:
-            value = time.time()
+        now = time.time()
+        expire = TOKEN_EXPIRE
+        if value is not None:
+            expire -= int(now - value)
+        else:
+            value = now
+        self.setex(token, value, expire)
         return self.client.zadd(REDIS_ALL_OPENAI_KEY, {token: int(value)})
 
     def remove_token(self, *token):
+        self.delete(*token)
         return self.client.zrem(REDIS_ALL_OPENAI_KEY, *token)
 
     def get_random_token(self):
@@ -59,10 +65,13 @@ class RedisUtil:
         else:
             end = int(end)
         if start is None:
-            start = time.time() - (60 * 60 * 24 * 2.8)
+            start = time.time() - TOKEN_EXPIRE
         else:
             start = int(start)
         return self.client.zrangebyscore(REDIS_ALL_OPENAI_KEY, start, end)
+
+    def is_member(self, token):
+        return self.client.zscore(REDIS_ALL_OPENAI_KEY, token)
 
 
 redis_conn = RedisUtil()

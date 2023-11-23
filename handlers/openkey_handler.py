@@ -1,3 +1,5 @@
+import datetime
+
 from telegram import Update, InlineKeyboardButton, ForceReply, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
@@ -92,7 +94,7 @@ async def openKey_random(update: Update, context: CallbackContext) -> None:
         [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
     ]
     data = operation_title
-    res = redis_conn.get_random_token(REDIS_ALL_OPENAI_KEY)
+    res = redis_conn.get_random_token()
     if data is None:
         data += 'No token found\\!'
     else:
@@ -105,7 +107,7 @@ async def openKey_listAllTokens(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
     ]
-    tokens_set = redis_conn.get_all_tokens(REDIS_ALL_OPENAI_KEY)
+    tokens_set = redis_conn.get_all_tokens()
     tokens = list(tokens_set)
     await update.callback_query.edit_message_text(f'Totally {len(tokens)}, random 5 keys:\n{tokens[:5]}',
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
@@ -121,7 +123,7 @@ async def openKey_listAllKeys(update: Update, context: CallbackContext):
     origin_gmails_str = '\n'.join(origin_gmails)
     res = '\n'.join([f'{k}: {v}' for k, v in statis.items()])
     res += f'\n\nOrigin gmails:\n{origin_gmails_str}'
-    await update.callback_query.edit_message_text(escape_markdown(res, 2),
+    await update.callback_query.edit_message_text(res,
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
 
 

@@ -1,4 +1,5 @@
 import copy
+import datetime
 import email
 import imaplib
 import json
@@ -15,6 +16,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 from config.config import configInstance
+from handlers.constants import TOKEN_REQ_INTERVAL
 from logger.logger_config import setup_logger
 from db.redis_util import redis_conn
 
@@ -318,7 +320,7 @@ class OpenaiKey:
         token = self.request_for_openai_key(email_address, code)
         if token is not None:
             redis_conn.add_token(token)
-            redis_conn.setex(email_address, token, 60 * 60 * 24)
+            redis_conn.setex(email_address, token, TOKEN_REQ_INTERVAL)
         return token
 
 
