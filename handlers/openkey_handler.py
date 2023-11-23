@@ -180,6 +180,9 @@ async def validate_openkey(update: Update, context: CallbackContext):
     token = context.args[0]
     response = validate_openai_key_with_res(token)
     res = response.text
+    if 'Error' in res:
+        redis_conn.remove_token(token)
+        logger.info(f'Remove invalid token: {token}')
     msg = f'{operation_title}{escape_markdown(res if res else "No response", 2)}'
     await update.message.reply_text(text=msg, parse_mode=ParseMode.MARKDOWN_V2)
 

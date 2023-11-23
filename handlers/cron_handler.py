@@ -1,4 +1,5 @@
 import io
+import time
 
 import requests
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -90,8 +91,11 @@ async def cron_hack_openkey(application):
 
 async def cron_sync_kv(application):
     logger.info('Cron job sync kv start. ')
-    tokens = redis_conn.get_all_tokens()
-    logger.info(f'Size of {REDIS_ALL_OPENAI_KEY}: {len(tokens)}')
+    now = time.time()
+    start = now - TOKEN_EXPIRE
+    end = now - TOKEN_REQ_INTERVAL * 2
+    tokens = redis_conn.get_all_tokens(start, end)
+    logger.info(f'Size of {REDIS_ALL_OPENAI_KEY} from {start} to {end}: {len(tokens)}')
     if not tokens:
         msg = f'No OpenKey in {REDIS_ALL_OPENAI_KEY}, res: {tokens}'
         await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID,
