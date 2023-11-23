@@ -16,7 +16,7 @@ from googleapiclient.discovery import build
 
 from config.config import configInstance
 from logger.logger_config import setup_logger
-from db.redis_config import redis_conn
+from db.redis_util import redis_conn
 
 logger = setup_logger(__name__)
 
@@ -317,7 +317,7 @@ class OpenaiKey:
     def request_for_openai_key_and_set_cache(self, email_address: str, code: str) -> str:
         token = self.request_for_openai_key(email_address, code)
         if token is not None:
-            redis_conn.sadd('all_openai_key', token)
+            redis_conn.add_token(token)
             redis_conn.setex(email_address, token, 60 * 60 * 24)
         return token
 

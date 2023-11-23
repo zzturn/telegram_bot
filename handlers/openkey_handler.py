@@ -3,7 +3,7 @@ from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 from telegram.helpers import escape_markdown
 
-from db.redis_config import redis_conn
+from db.redis_util import redis_conn
 from handlers.constants import *
 from handlers.constants import DEVELOPER_CHAT_ID, operation_title, REDIS_ALL_OPENAI_KEY, ADD_TOKEN, REMOVE_TOKEN, \
     SET_CACHE, REMOVE_CACHE, HACK_TOKEN
@@ -12,16 +12,17 @@ from openkey.openai_key import OpenaiKey, validate_openai_key, validate_openai_k
 
 logger = setup_logger(__name__)
 
+
 async def remove_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
-    res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, key)
+    res = redis_conn.remove_token(key)
     data = f"{operation_title}Remove token {escape_markdown(key, 2)}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 async def add_a_openai_token(update: Update, context: CallbackContext) -> None:
     key = context.args[0]
-    res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, key)
+    res = redis_conn.add_token(key)
     data = f"{operation_title}Add token {escape_markdown(key, 2)}\nres:\n{escape_markdown(str(res) if res else 'No Message', 2)}"
     await update.message.reply_text(data, parse_mode=ParseMode.MARKDOWN_V2)
 
@@ -91,7 +92,7 @@ async def openKey_random(update: Update, context: CallbackContext) -> None:
         [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
     ]
     data = operation_title
-    res = redis_conn.srandmember(REDIS_ALL_OPENAI_KEY)
+    res = redis_conn.get_random_token(REDIS_ALL_OPENAI_KEY)
     if data is None:
         data += 'No token found\\!'
     else:
@@ -104,7 +105,7 @@ async def openKey_listAllTokens(update: Update, context: CallbackContext):
     keyboard = [
         [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
     ]
-    tokens_set = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)
+    tokens_set = redis_conn.get_all_tokens(REDIS_ALL_OPENAI_KEY)
     tokens = list(tokens_set)
     await update.callback_query.edit_message_text(f'Totally {len(tokens)}, random 5 keys:\n{tokens[:5]}',
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
@@ -115,10 +116,22 @@ async def openKey_listAllKeys(update: Update, context: CallbackContext):
         [InlineKeyboardButton("⏪️Back", callback_data=CALLBACK_OPENKEY)]
     ]
     keys_set = redis_conn.keys()
-    tokens = list(keys_set)
-    tokens_str = '\n'.join(tokens)
-    await update.callback_query.edit_message_text(f'Totally {len(tokens)}:\n{tokens_str}',
+    statis = statistics(keys_set)
+    origin_gmails = list(filter(lambda x: x.endswith('gmail.com') and '+' not in x, keys_set))
+    origin_gmails_str = '\n'.join(origin_gmails)
+    res = '\n'.join([f'{k}: {v}' for k, v in statis.items()])
+    res += f'\n\nOrigin gmails:\n{origin_gmails_str}'
+    await update.callback_query.edit_message_text(escape_markdown(res, 2),
                                                   reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+def statistics(keys):
+    icloud_count = len(list(filter(lambda x: x.endswith('icloud.com'), keys)))
+    hack_count = len(list(filter(lambda x: '+' in x, keys)))
+    gmail_count = len(list(filter(lambda x: x.endswith('gmail.com') and '+' not in x, keys)))
+    token_count = len(list(filter(lambda x: x.startswith('sk-'), keys)))
+    return {'icloud_count': icloud_count, 'hack_count': hack_count, 'gmail_count': gmail_count,
+            'token_count': token_count}
 
 
 async def openKey_hackToken(update: Update, context: CallbackContext):
@@ -147,6 +160,7 @@ async def openKey(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.edit_message_text(text='Okay, choose one:',
                                                   reply_markup=reply_markup)
+
 
 async def hack_openkey(update: Update, context: CallbackContext):
     openai_key = OpenaiKey()
@@ -177,14 +191,14 @@ async def handle_callback_input(update: Update, context: CallbackContext):
             if len(inputs) != 1:
                 await update.message.reply_text('Please reply with right format.')
                 return
-            res = redis_conn.sadd(REDIS_ALL_OPENAI_KEY, inputs[0])
+            res = redis_conn.add_token(inputs[0])
             await update.message.reply_text(f'You add token: {inputs[0]}, res: {res}')
             context.user_data['handled'] = True
         elif action == REMOVE_TOKEN:
             if len(inputs) != 1:
                 await update.message.reply_text('Please reply with right format.')
                 return
-            res = redis_conn.srem(REDIS_ALL_OPENAI_KEY, inputs[0])
+            res = redis_conn.remove_token(inputs[0])
             await update.message.reply_text(f'You remove token: {inputs[0]}, res: {res}')
             context.user_data['handled'] = True
         elif action == SET_CACHE:

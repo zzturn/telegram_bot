@@ -11,7 +11,7 @@ from telegram.helpers import escape_markdown
 
 from config import config
 from config.config import configInstance
-from db.redis_config import redis_conn
+from db.redis_util import redis_conn
 from handlers.constants import *
 from openkey.openai_key import validate_openai_key, OpenaiKey
 from logger.logger_config import setup_logger
@@ -20,6 +20,7 @@ logger = setup_logger('cron')
 
 # cron
 custom_scheduler = AsyncIOScheduler()
+
 
 async def cron_validate_openkey(application):
     logger.info('Cron job validate open key start. ')
@@ -38,7 +39,7 @@ async def cron_validate_openkey(application):
         if count > 20:
             break
         count += 1
-        token = redis_conn.srandmember(REDIS_ALL_OPENAI_KEY)
+        token = redis_conn.get_random_token()
         if token not in expire_tokens:
             break
 
@@ -52,7 +53,7 @@ async def cron_validate_openkey(application):
     if len(expire_tokens) > 0:
         expire_str = '\n'.join(expire_tokens)
         msg = f'{cron_title}*{escape_markdown(expire_str, 2)}*\nis invalid and removed'
-        redis_conn.srem(REDIS_ALL_OPENAI_KEY, *expire_tokens)
+        redis_conn.remove_token(*expire_tokens)
         delete_keys_from_cf(expire_tokens, configInstance.cf_account_id,
                             configInstance.cf_namespace_id, configInstance.cf_api_key)
         await application.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN_V2)
@@ -89,7 +90,7 @@ async def cron_hack_openkey(application):
 
 async def cron_sync_kv(application):
     logger.info('Cron job sync kv start. ')
-    tokens = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)
+    tokens = redis_conn.get_all_tokens()
     logger.info(f'Size of {REDIS_ALL_OPENAI_KEY}: {len(tokens)}')
     if not tokens:
         msg = f'No OpenKey in {REDIS_ALL_OPENAI_KEY}, res: {tokens}'
@@ -134,16 +135,23 @@ async def cron_update(update: Update, context: CallbackContext):
 
 
 async def cron_info(update: Update, context: CallbackContext):
-    options = [CRON_REQUEST_OPENKEY, CRON_HACK_OPENKEY, CRON_VALIDATE_OPENKEY, CRON_SYNC_KV]
-    if len(context.args) != 1 or context.args[0] not in options:
-        option_str = "\n".join(options)
-        msg = f'💡Please input the cron id:\n{option_str}'
-        await update.message.reply_text(msg)
-        token = context.args[0]
-    job = custom_scheduler.get_job(context.args[0])
-    msg = f'Get cron job {context.args[0]} success!\nTrigger: {job.trigger}\nNext run time: {job.next_run_time}'
+    msg = get_cron_info()
     msg = f'{cron_title}{escape_markdown(msg, 2)}'
     await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+
+
+def get_cron_info():
+    jobs = custom_scheduler.get_jobs()
+    cron_info_str = '\n\n'.join(
+        [f'{job.id}:\n{get_cron_str(job.trigger)}\n{job.next_run_time.strftime("%Y-%m-%d %H:%M:%S")}' for job in jobs])
+    return cron_info_str
+
+
+def get_cron_str(trigger):
+    if isinstance(trigger, CronTrigger):
+        return f'{trigger.fields[6]} {trigger.fields[5]} {trigger.fields[2]} {trigger.fields[1]} {trigger.fields[4]}'
+    else:
+        return 'None'
 
 
 def update_cron(job_id, cron_expression):
@@ -151,6 +159,7 @@ def update_cron(job_id, cron_expression):
     job.reschedule(CronTrigger.from_crontab(cron_expression))
     logger.info(f'Update cron job {job_id} to {cron_expression}, next run time: {job.next_run_time}')
     return job
+
 
 def put_kv_to_cf(key, value, account_id, namespace_id, cf_api_key):
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/values/{key}"
@@ -203,9 +212,20 @@ def test_list_keys_from_cf():
     logger.info(f"List keys from Cloudflare KV: {keys}")
 
 
+def test_cron_info():
+    custom_scheduler.add_job(cron_request_openkey, CronTrigger.from_crontab("0 0 * * *"), args=['j'],
+                             id=CRON_REQUEST_OPENKEY)
+    custom_scheduler.add_job(cron_request_openkey, CronTrigger.from_crontab("10 10 * * *"), args=['j'],
+                             id='abc')
+    custom_scheduler.start()
+    s = get_cron_info()
+    print(s)
+
+
 if __name__ == '__main__':
+    test_cron_info()
     test_list_keys_from_cf()
-    tokens = redis_conn.smembers(REDIS_ALL_OPENAI_KEY)
+    tokens = redis_conn.get_all_tokens()
     logger.info(f'{REDIS_ALL_OPENAI_KEY}: {tokens}')
     # 使用列表推导解码每个字节字符串
     normal_strings = [byte_string.decode('utf-8') if isinstance(byte_string, bytes) else byte_string for byte_string in

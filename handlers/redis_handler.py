@@ -3,7 +3,7 @@ from telegram.constants import ParseMode
 from telegram.ext import CallbackContext, ConversationHandler, ContextTypes
 from telegram.helpers import escape_markdown
 
-from db.redis_config import redis_conn
+from db.redis_util import redis_conn
 from handlers.constants import REDIS_MODE
 from handlers.constants import status_title, operation_title
 from logger.logger_config import setup_logger

@@ -32,8 +32,6 @@ async def summarize_url_text(update: Update, context: CallbackContext) -> None:
         return
     url_content_text = None
 
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
     logger.info(f"Begin to summarize {url}")
     try:
         url_content_text = get_text_by_selenium(url)
