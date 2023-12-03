@@ -80,11 +80,10 @@ class Gmail(Email):
                 code = re.search(r'\d+', msg['snippet']).group()
                 # 创建邮件的已读标记请求
                 ids = [msg['id'] for msg in messages]
-                mark_as_read_request = {
-                    'ids': ids,
-                    'removeLabelIds': ['UNREAD']
+                delete_request = {
+                    'ids': ids
                 }
-                res = service.users().messages().batchModify(userId='me', body=mark_as_read_request).execute()
+                res = service.users().messages().batchDelete(userId='me', body=delete_request).execute()
                 logger.debug(res)
             time.sleep(1)
             current_iteration += 1
@@ -391,11 +390,12 @@ def main():
 
 
 if __name__ == '__main__':
-    test_validate_openai_key()
+    # test_validate_openai_key()
     # item = [x for x in configInstance.get_email_items() if x['email'] == 'luoxin9712@gmail.com'][0]
     # r = Gmail(item).read_email_code()
     # r = ICloud({'email': 'item'}).read_email_code()
-    # OpenaiKey().request_for_openai_key(r[0]['email'], r[0]['code'])
+    OpenaiKey().request_for_openai_key('t2303h+ooyrt@gmail.com','1068')
+
     # test_read_gmail()
     request_refresh_token()
     main()
