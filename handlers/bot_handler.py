@@ -50,7 +50,7 @@ async def log_update(update: Update, context: CallbackContext) -> None:
 
 
 async def error_handler(update: object, context: CallbackContext):
-    logger.error(msg="Exception while handling an update:", exc_info=context.error)
+    # logger.error(msg="Exception while handling an update:", exc_info=context.error)
     # 获取错误堆栈信息
     error_traceback = ''.join(traceback.format_tb(context.error.__traceback__))
     context_error = context.error
